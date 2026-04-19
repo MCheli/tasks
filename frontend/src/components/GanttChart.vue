@@ -152,7 +152,10 @@ const rows = computed(() =>
       />
 
       <!-- Rows -->
-      <g v-for="row in rows" :key="row.key">
+      <g
+        v-for="row in rows"
+        :key="row.key"
+      >
         <!-- Label -->
         <text
           :x="LABEL_WIDTH - 8"
@@ -161,12 +164,18 @@ const rows = computed(() =>
           font-size="11"
           fill="#374151"
         >
-          <tspan font-family="ui-monospace, monospace" fill="#9ca3af">#{{ row.displayId }}</tspan>
+          <tspan
+            font-family="ui-monospace, monospace"
+            fill="#9ca3af"
+          >#{{ row.displayId }}</tspan>
           <tspan dx="6">{{ row.title.length > 24 ? row.title.slice(0, 23) + '…' : row.title }}</tspan>
         </text>
 
         <!-- Segments -->
-        <g v-for="seg in row.segments" :key="seg.id">
+        <g
+          v-for="seg in row.segments"
+          :key="seg.id"
+        >
           <rect
             :x="seg.x"
             :y="row.y + 6"

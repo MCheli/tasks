@@ -37,8 +37,12 @@ watch(() => cycles.activeCategory, load)
         <button
           class="text-sm text-gray-500 hover:text-gray-700"
           @click="router.push('/cycle')"
-        >← Back</button>
-        <h1 class="text-base font-semibold">History</h1>
+        >
+          ← Back
+        </button>
+        <h1 class="text-base font-semibold">
+          History
+        </h1>
         <TabSwitcher class="hidden sm:flex" />
       </div>
       <div class="sm:hidden border-t border-gray-100 px-3 py-2">
@@ -47,14 +51,19 @@ watch(() => cycles.activeCategory, load)
     </header>
 
     <main class="max-w-3xl mx-auto p-4">
-      <div v-if="loading" class="text-sm text-gray-400 text-center py-12">
+      <div
+        v-if="loading"
+        class="text-sm text-gray-400 text-center py-12"
+      >
         Loading…
       </div>
       <div
         v-else-if="error"
         class="text-sm text-red-600 text-center py-12"
         role="alert"
-      >{{ error }}</div>
+      >
+        {{ error }}
+      </div>
       <div
         v-else-if="!data.lineages.length"
         class="text-sm text-gray-400 text-center py-12 bg-white rounded-lg border border-gray-200"
@@ -68,18 +77,21 @@ watch(() => cycles.activeCategory, load)
       />
 
       <!-- Legend -->
-      <div v-if="data.lineages.length" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+      <div
+        v-if="data.lineages.length"
+        class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500"
+      >
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-accent-500"></span> Open / forwarded
+          <span class="w-3 h-3 rounded-sm bg-accent-500" /> Open / forwarded
         </span>
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-green-500"></span> Completed
+          <span class="w-3 h-3 rounded-sm bg-green-500" /> Completed
         </span>
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-gray-400"></span> Canceled
+          <span class="w-3 h-3 rounded-sm bg-gray-400" /> Canceled
         </span>
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 border-l-2 border-dashed border-amber-400"></span> Today
+          <span class="w-3 h-3 border-l-2 border-dashed border-amber-400" /> Today
         </span>
       </div>
     </main>

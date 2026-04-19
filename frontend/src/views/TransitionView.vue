@@ -80,11 +80,13 @@ function cancel() {
         <button
           class="text-sm text-gray-500 hover:text-gray-700"
           @click="cancel"
-        >← Cancel</button>
+        >
+          ← Cancel
+        </button>
         <h1 class="text-sm sm:text-base font-semibold capitalize">
           New Cycle Planning · {{ cycles.activeCategory }}
         </h1>
-        <div class="w-16 sm:w-24"></div>
+        <div class="w-16 sm:w-24" />
       </div>
       <div class="max-w-2xl mx-auto px-3 pb-2 text-xs sm:text-sm text-gray-600 flex items-center gap-3 flex-wrap">
         <span class="text-accent-600 font-medium">→ {{ summary.forward }} forwarding</span>
@@ -127,7 +129,9 @@ function cancel() {
             <p
               v-if="task.notes"
               class="text-xs text-gray-500 mt-0.5 line-clamp-2 whitespace-pre-wrap"
-            >{{ task.notes }}</p>
+            >
+              {{ task.notes }}
+            </p>
           </div>
         </div>
       </div>
@@ -136,7 +140,9 @@ function cancel() {
         v-if="error"
         class="text-xs text-red-600 mt-3"
         role="alert"
-      >{{ error }}</p>
+      >
+        {{ error }}
+      </p>
     </main>
 
     <!-- Start button -->

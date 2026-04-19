@@ -10,7 +10,10 @@ const tabs = [
 </script>
 
 <template>
-  <div role="tablist" class="flex items-center gap-0 bg-gray-100 rounded-lg p-1">
+  <div
+    role="tablist"
+    class="flex items-center gap-0 bg-gray-100 rounded-lg p-1"
+  >
     <button
       v-for="t in tabs"
       :key="t.id"

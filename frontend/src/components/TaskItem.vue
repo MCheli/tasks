@@ -140,7 +140,10 @@ function fmtDate(iso) {
     </button>
 
     <!-- Title + expand -->
-    <div class="flex-1 min-w-0 cursor-pointer" @click="expanded = !expanded">
+    <div
+      class="flex-1 min-w-0 cursor-pointer"
+      @click="expanded = !expanded"
+    >
       <div class="flex items-baseline gap-2">
         <span class="text-[11px] font-mono text-gray-400">#{{ task.display_id }}</span>
         <span
@@ -150,16 +153,24 @@ function fmtDate(iso) {
       </div>
 
       <!-- Expanded body -->
-      <div v-if="expanded" class="mt-2 space-y-2" @click.stop>
+      <div
+        v-if="expanded"
+        class="mt-2 space-y-2"
+        @click.stop
+      >
         <template v-if="!editing">
           <p
             v-if="task.notes"
             class="text-sm text-gray-600 whitespace-pre-wrap"
-          >{{ task.notes }}</p>
+          >
+            {{ task.notes }}
+          </p>
           <p
             v-else
             class="text-xs text-gray-400 italic"
-          >No notes.</p>
+          >
+            No notes.
+          </p>
           <div class="text-[11px] text-gray-400 flex flex-wrap gap-x-3">
             <span>Created {{ fmtDate(task.created_at) }}</span>
             <span v-if="task.push_forward_count > 0">
@@ -179,7 +190,7 @@ function fmtDate(iso) {
             class="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-accent-500"
             @keydown.enter.stop.prevent="saveEdit"
             @keydown.escape.stop="cancelEdit"
-          />
+          >
           <textarea
             v-model="editNotes"
             rows="3"
@@ -190,7 +201,10 @@ function fmtDate(iso) {
         </template>
 
         <!-- Action row -->
-        <div class="flex items-center gap-2 flex-wrap pt-1" v-if="!readonly">
+        <div
+          v-if="!readonly"
+          class="flex items-center gap-2 flex-wrap pt-1"
+        >
           <template v-if="!editing">
             <button
               class="text-xs px-2 py-1 text-accent-600 hover:bg-accent-50 rounded"

@@ -75,8 +75,11 @@ defineExpose({ focus: () => titleEl.value?.focus() })
       class="w-full bg-transparent border-none focus:outline-none text-sm placeholder-gray-400"
       @focus="expanded = true"
       @keydown="onTitleKey"
-    />
-    <div v-if="expanded" class="mt-2 space-y-2">
+    >
+    <div
+      v-if="expanded"
+      class="mt-2 space-y-2"
+    >
       <textarea
         ref="notesEl"
         v-model="notes"

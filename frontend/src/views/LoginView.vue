@@ -59,10 +59,15 @@ function googleLogin() {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4 safe-bottom">
     <div class="w-full max-w-sm">
-      <h1 class="text-2xl font-semibold text-center mb-6">Tasks</h1>
+      <h1 class="text-2xl font-semibold text-center mb-6">
+        Tasks
+      </h1>
 
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form @submit.prevent="submit" class="space-y-3">
+        <form
+          class="space-y-3"
+          @submit.prevent="submit"
+        >
           <label class="block">
             <span class="text-xs font-medium text-gray-700">Email</span>
             <input
@@ -72,7 +77,7 @@ function googleLogin() {
               required
               autofocus
               class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none"
-            />
+            >
           </label>
 
           <label class="block">
@@ -83,10 +88,16 @@ function googleLogin() {
               autocomplete="current-password"
               required
               class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none"
-            />
+            >
           </label>
 
-          <p v-if="error" class="text-xs text-red-600" role="alert">{{ error }}</p>
+          <p
+            v-if="error"
+            class="text-xs text-red-600"
+            role="alert"
+          >
+            {{ error }}
+          </p>
 
           <button
             type="submit"
@@ -98,17 +109,17 @@ function googleLogin() {
         </form>
 
         <div class="my-4 flex items-center gap-2 text-xs text-gray-400">
-          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex-1 h-px bg-gray-200" />
           <span>or</span>
-          <div class="flex-1 h-px bg-gray-200"></div>
+          <div class="flex-1 h-px bg-gray-200" />
         </div>
 
         <button
           type="button"
-          @click="googleLogin"
           :disabled="!googleConfigured"
           :title="googleConfigured ? '' : 'Google SSO not yet configured by admin'"
           class="w-full rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="googleLogin"
         >
           Sign in with Google
         </button>

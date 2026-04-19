@@ -8,7 +8,10 @@ onMounted(() => auth.init())
 
 <template>
   <RouterView v-slot="{ Component }">
-    <Transition name="fade" mode="out-in">
+    <Transition
+      name="fade"
+      mode="out-in"
+    >
       <component :is="Component" />
     </Transition>
   </RouterView>

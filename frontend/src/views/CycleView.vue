@@ -64,7 +64,9 @@ const cycleStartedRel = computed(() => {
   <div class="min-h-screen bg-gray-50">
     <header class="sticky top-0 z-10 bg-white border-b border-gray-200">
       <div class="max-w-2xl mx-auto flex items-center justify-between gap-3 px-3 py-2">
-        <h1 class="text-base font-semibold">Tasks</h1>
+        <h1 class="text-base font-semibold">
+          Tasks
+        </h1>
         <TabSwitcher class="hidden sm:flex" />
         <div class="flex items-center gap-1">
           <button
@@ -106,7 +108,10 @@ const cycleStartedRel = computed(() => {
         </button>
       </div>
 
-      <TaskInput ref="taskInputRef" class="mb-4" />
+      <TaskInput
+        ref="taskInputRef"
+        class="mb-4"
+      />
 
       <!-- Initial loading skeleton -->
       <div
@@ -118,8 +123,8 @@ const cycleStartedRel = computed(() => {
           :key="i"
           class="flex items-center gap-3 px-3 py-3 border-b last:border-b-0 border-gray-100 animate-pulse"
         >
-          <div class="w-5 h-5 rounded bg-gray-200"></div>
-          <div class="h-3 bg-gray-200 rounded flex-1"></div>
+          <div class="w-5 h-5 rounded bg-gray-200" />
+          <div class="h-3 bg-gray-200 rounded flex-1" />
         </div>
       </div>
 
@@ -189,7 +194,9 @@ const cycleStartedRel = computed(() => {
         v-if="cycles.error"
         class="text-xs text-red-600 mt-4"
         role="alert"
-      >{{ cycles.error }}</p>
+      >
+        {{ cycles.error }}
+      </p>
     </main>
 
     <!-- Start New Cycle button -->
