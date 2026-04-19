@@ -41,6 +41,9 @@ npm-debug.log*
 playwright-report/
 test-results/
 .last-run.json
+.playwright-mcp/
+*.png
+!docs/screenshots/*.png
 
 # Local agent / docs working copies
 files/
