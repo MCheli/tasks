@@ -9,6 +9,7 @@ import draggable from 'vuedraggable'
 import TabSwitcher from '@/components/TabSwitcher.vue'
 import TaskInput from '@/components/TaskInput.vue'
 import TaskItem from '@/components/TaskItem.vue'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -16,6 +17,12 @@ const cycles = useCyclesStore()
 const taskInputRef = ref(null)
 
 onMounted(() => cycles.refresh())
+
+useKeyboardShortcuts({
+  n: () => taskInputRef.value?.focus(),
+  'g h': () => router.push('/history'),
+  'g c': () => router.push('/cycle'),
+})
 
 async function logout() {
   await auth.logout()
@@ -101,10 +108,25 @@ const cycleStartedRel = computed(() => {
 
       <TaskInput ref="taskInputRef" class="mb-4" />
 
+      <!-- Initial loading skeleton -->
+      <div
+        v-if="cycles.loading && !cycles.tasks.open.length && !cycles.tasks.completed.length"
+        class="bg-white rounded-lg border border-gray-200 overflow-hidden"
+      >
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="flex items-center gap-3 px-3 py-3 border-b last:border-b-0 border-gray-100 animate-pulse"
+        >
+          <div class="w-5 h-5 rounded bg-gray-200"></div>
+          <div class="h-3 bg-gray-200 rounded flex-1"></div>
+        </div>
+      </div>
+
       <!-- Open tasks (drag-reorderable) -->
       <section
+        v-else-if="cycles.tasks.open.length"
         class="bg-white rounded-lg border border-gray-200 overflow-hidden"
-        v-if="cycles.tasks.open.length"
       >
         <draggable
           v-model="cycles.tasks.open"
@@ -121,10 +143,12 @@ const cycleStartedRel = computed(() => {
         </draggable>
       </section>
       <div
-        v-else-if="!cycles.loading"
+        v-else
         class="bg-white rounded-lg border border-gray-200 px-4 py-8 text-center text-sm text-gray-400"
       >
-        No open tasks. Add one above.
+        No open tasks. Add one above — or press
+        <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
+        to focus the input.
       </div>
 
       <!-- Completed -->
