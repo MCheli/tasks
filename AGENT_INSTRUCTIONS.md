@@ -152,3 +152,135 @@ You have Playwright MCP available. Use it to:
 - Add production secrets to his deployment environment.
 
 Everything else — you own it. Build the thing.
+
+---
+
+## Working with the Repo — Key Commands
+
+The build is complete. This section is the operating manual for any future agent (or human) coming back to this repo.
+
+### One-time setup
+
+```bash
+# Python 3.11 backend venv
+cd backend
+python3.11 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+
+# Frontend deps
+cd ../frontend
+npm install
+
+# Optional: Playwright browsers for the standing e2e suite
+cd ../e2e
+npm install
+npx playwright install --with-deps chromium
+
+# Local .env at repo root (gitignored). Copy from .env.example and fill in:
+#   TASKS_JWT_SECRET — `openssl rand -hex 32`
+#   TASKS_TEST_USER_EMAIL / TASKS_TEST_USER_PASSWORD — admin@tallied.dev creds
+```
+
+### Local dev — services
+
+```bash
+# Spin up dev DB (port 5434) + test DB (port 5433). Both are gitignored data.
+docker compose up -d db db-test
+
+# Apply migrations to dev DB (also runs automatically inside the container)
+cd backend && .venv/bin/alembic upgrade head
+
+# Backend on http://127.0.0.1:8001 with hot-reload
+.venv/bin/uvicorn app.main:app --reload --port 8001
+
+# Frontend on http://localhost:5173 (Vite proxies /api to :8001)
+cd ../frontend && npm run dev
+```
+
+Login at http://localhost:5173 with the test-user credentials.
+
+### Tests + lint
+
+```bash
+# Backend
+cd backend
+.venv/bin/pytest                       # all tests
+.venv/bin/pytest -k transition         # name match
+.venv/bin/pytest --cov=app             # with coverage
+.venv/bin/ruff check . && .venv/bin/black --check .
+.venv/bin/ruff check --fix . && .venv/bin/black .   # auto-fix
+
+# Standing E2E (needs backend + frontend running, OR a built container on 8000)
+cd e2e
+BASE_URL=http://localhost:5173 npm test     # against vite dev
+BASE_URL=http://localhost:8000 npm test     # against built container
+```
+
+### Migrations
+
+```bash
+cd backend
+# After editing models, generate a new migration:
+.venv/bin/alembic revision --autogenerate -m "add foo to bar"
+# Review the generated file under alembic/versions/, then apply:
+.venv/bin/alembic upgrade head
+# Roll back one step:
+.venv/bin/alembic downgrade -1
+```
+
+### Docker
+
+```bash
+# Build the prod image
+DOCKER_BUILDKIT=1 docker build -t ghcr.io/mcheli/tasks:dev .
+
+# Run the prod image against the dev DB on the local network
+docker run --rm --name tasks-prod \
+  --network tasks_default \
+  -e TASKS_DATABASE_URL=postgresql+asyncpg://cycle_todo:changeme@db:5432/cycle_todo \
+  -e TASKS_JWT_SECRET=dev-only \
+  -e TASKS_TEST_USER_EMAIL=admin@tallied.dev \
+  -e TASKS_TEST_USER_PASSWORD=tallied-admin-change-me \
+  -e TASKS_ALLOWED_ORIGINS=http://localhost:8002 \
+  -p 8002:8000 \
+  ghcr.io/mcheli/tasks:dev
+
+# Tail container logs
+docker logs -f tasks-prod
+```
+
+### Git / CI
+
+```bash
+git status                             # check what's uncommitted
+git log --oneline                      # see history (9 phase commits + 1 docs)
+git push                               # push to origin/main → triggers release.yml
+```
+
+CI runs on every PR and push to main:
+- `backend` job — ruff, black, pytest with coverage
+- `frontend` job — npm ci, lint (warnings non-blocking), build
+- `docker` job — full multi-stage build (no push)
+
+Release workflow runs on push to main and on `v*` tags:
+- Builds and pushes `ghcr.io/mcheli/tasks` with `:latest`, `:{sha}`, and `:v{semver}` tags
+
+### Ports / hosts (local)
+
+| Service | Port | URL |
+|---|---|---|
+| Postgres dev | 5434 (host) → 5432 | `postgresql://cycle_todo:changeme@localhost:5434/cycle_todo` |
+| Postgres test | 5433 (host) → 5432 | `postgresql://postgres:postgres@localhost:5433/cycle_todo_test` |
+| Backend (uvicorn) | 8001 | http://127.0.0.1:8001/api/health |
+| Frontend (Vite) | 5173 | http://localhost:5173 |
+| Built container (optional) | 8002 → 8000 | http://localhost:8002 |
+
+### Environment variables
+
+All variables are `TASKS_`-prefixed. Full table in `DEPLOYMENT_HANDOFF_TEMPLATE.md`. Local `.env` is gitignored; `.env.example` is the schema.
+
+### Files to read first when coming back
+
+1. `DECISIONS.md` — every judgment call made during the build, with rationale.
+2. `DEPLOYMENT_HANDOFF_TEMPLATE.md` — self-contained ops manual for the deployment agent.
+3. `ARCHITECTURE.md` + `DATABASE_SCHEMA.md` + `API_SPEC.md` — original spec; still accurate where DECISIONS.md doesn't override.
