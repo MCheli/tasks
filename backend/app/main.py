@@ -67,29 +67,29 @@ try:
     from app.routers import auth as _auth_router  # noqa: WPS433
 
     app.include_router(_auth_router.router, prefix="/api/auth", tags=["auth"])
-except ImportError:
-    logger.info("Auth router not yet implemented; skipping include.")
+except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
+    logger.warning("Auth router not loaded: %s", _exc)
 
 try:
     from app.routers import cycles as _cycles_router  # noqa: WPS433
 
     app.include_router(_cycles_router.router, prefix="/api/cycles", tags=["cycles"])
-except ImportError:
-    logger.info("Cycles router not yet implemented; skipping include.")
+except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
+    logger.info("Cycles router not loaded: %s", _exc)
 
 try:
     from app.routers import tasks as _tasks_router  # noqa: WPS433
 
     app.include_router(_tasks_router.router, prefix="/api/tasks", tags=["tasks"])
-except ImportError:
-    logger.info("Tasks router not yet implemented; skipping include.")
+except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
+    logger.info("Tasks router not loaded: %s", _exc)
 
 try:
     from app.routers import history as _history_router  # noqa: WPS433
 
     app.include_router(_history_router.router, prefix="/api/history", tags=["history"])
-except ImportError:
-    logger.info("History router not yet implemented; skipping include.")
+except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
+    logger.info("History router not loaded: %s", _exc)
 
 
 # Static frontend (production build copied to /app/static by Dockerfile).
