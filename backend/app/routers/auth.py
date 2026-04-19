@@ -97,9 +97,7 @@ async def google_login(request: Request):
     # Prefer the explicit env-configured redirect URI. If unset, fall back
     # to deriving one from the current request — useful in dev when the
     # user hasn't filled in TASKS_GOOGLE_REDIRECT_URI.
-    redirect_uri = settings.GOOGLE_REDIRECT_URI or str(
-        request.url_for("google_callback")
-    )
+    redirect_uri = settings.GOOGLE_REDIRECT_URI or str(request.url_for("google_callback"))
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
@@ -121,9 +119,7 @@ async def google_callback(
         token = await oauth.google.authorize_access_token(request)
     except Exception as exc:  # noqa: BLE001 — Authlib raises various subclasses
         logger.warning("Google OAuth code exchange failed: %s", exc)
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Google OAuth exchange failed"
-        ) from exc
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google OAuth exchange failed") from exc
 
     userinfo = token.get("userinfo")
     if not userinfo:
