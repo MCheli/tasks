@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.db.session import engine
@@ -52,6 +53,16 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Authlib stores OAuth state across the Google round-trip in this signed
+# cookie. JWT_SECRET is reused — different from the session JWT, but the
+# secret material is fine to share for this purpose.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.JWT_SECRET,
+    https_only=settings.COOKIE_SECURE,
+    same_site="lax",
 )
 
 

@@ -1,20 +1,24 @@
-"""Authentication routes — login, logout, me, Google OAuth scaffolds."""
+"""Authentication routes — login, logout, me, Google OAuth."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.oauth import is_google_configured
+from app.core.oauth import is_google_configured, oauth_client
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
 from app.dependencies import SESSION_COOKIE, get_current_user
 from app.models.user import User
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.user import UserOut
+
+logger = logging.getLogger("tasks.auth")
 
 router = APIRouter()
 
@@ -81,33 +85,97 @@ async def me(user: User = Depends(get_current_user)) -> UserOut:
 
 
 @router.get("/google/login")
-async def google_login() -> RedirectResponse:
-    if not is_google_configured():
-        # Surface a clear error in the dev UI rather than a 500.
+async def google_login(request: Request):
+    """Redirect the browser to Google's OAuth consent screen."""
+    oauth = oauth_client()
+    if oauth is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Google OAuth is not configured. Set TASKS_GOOGLE_CLIENT_ID and "
             "TASKS_GOOGLE_CLIENT_SECRET, then restart.",
         )
-    # TODO(mark): build authlib client and redirect to Google consent screen.
-    raise HTTPException(
-        status.HTTP_501_NOT_IMPLEMENTED,
-        "Google OAuth login flow not yet implemented.",
+    # Prefer the explicit env-configured redirect URI. If unset, fall back
+    # to deriving one from the current request — useful in dev when the
+    # user hasn't filled in TASKS_GOOGLE_REDIRECT_URI.
+    redirect_uri = settings.GOOGLE_REDIRECT_URI or str(
+        request.url_for("google_callback")
     )
+    return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get("/google/callback")
-async def google_callback() -> RedirectResponse:
-    if not is_google_configured():
+@router.get("/google/callback", name="google_callback")
+async def google_callback(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Exchange the authorization code, upsert the user, set session cookie."""
+    oauth = oauth_client()
+    if oauth is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Google OAuth is not configured.",
         )
-    # TODO(mark): exchange code, upsert user, set session cookie, redirect to /.
-    raise HTTPException(
-        status.HTTP_501_NOT_IMPLEMENTED,
-        "Google OAuth callback not yet implemented.",
+
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception as exc:  # noqa: BLE001 — Authlib raises various subclasses
+        logger.warning("Google OAuth code exchange failed: %s", exc)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Google OAuth exchange failed"
+        ) from exc
+
+    userinfo = token.get("userinfo")
+    if not userinfo:
+        # Older flows: hit the userinfo endpoint explicitly.
+        userinfo = (await oauth.google.userinfo(token=token)) or {}
+
+    sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    if not sub or not email:
+        logger.warning("Google userinfo missing sub or email: %s", userinfo)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Google did not return an email; cannot sign in.",
+        )
+
+    # Upsert: prefer match-by-google_sub; fall back to match-by-email
+    # (covers the case where the user was first created via password and
+    # is now linking Google for the first time).
+    user = await db.scalar(select(User).where(User.google_sub == sub))
+    if not user:
+        user = await db.scalar(select(User).where(User.email == email))
+
+    if user is None:
+        user = User(
+            email=email,
+            google_sub=sub,
+            display_name=userinfo.get("name"),
+        )
+        db.add(user)
+    else:
+        if not user.google_sub:
+            user.google_sub = sub
+        if not user.display_name and userinfo.get("name"):
+            user.display_name = userinfo["name"]
+
+    await db.flush()
+    await db.refresh(user)
+
+    # Issue a session cookie, then bounce to the SPA root.
+    session_token = create_access_token(user.id)
+    redirect = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    redirect.set_cookie(
+        key=SESSION_COOKIE,
+        value=session_token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        max_age=settings.JWT_EXPIRE_DAYS * 24 * 60 * 60,
+        domain=settings.COOKIE_DOMAIN,
+        path="/",
     )
+    return redirect
 
 
 @router.get("/google/status")
