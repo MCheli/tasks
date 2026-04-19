@@ -277,10 +277,10 @@ Release workflow runs on push to main and on `v*` tags:
 
 ### Environment variables
 
-All variables are `TASKS_`-prefixed. Full table in `DEPLOYMENT_HANDOFF_TEMPLATE.md`. Local `.env` is gitignored; `.env.example` is the schema.
+All variables are `TASKS_`-prefixed. Full table in `DEPLOYMENT.md`. Local `.env` is gitignored; `.env.example` is the schema.
 
 ### Files to read first when coming back
 
 1. `DECISIONS.md` — every judgment call made during the build, with rationale.
-2. `DEPLOYMENT_HANDOFF_TEMPLATE.md` — self-contained ops manual for the deployment agent.
+2. `DEPLOYMENT.md` — self-contained ops manual for the deployment agent.
 3. `ARCHITECTURE.md` + `DATABASE_SCHEMA.md` + `API_SPEC.md` — original spec; still accurate where DECISIONS.md doesn't override.

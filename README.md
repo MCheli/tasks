@@ -18,8 +18,7 @@ Read in this order:
 6. **`BACKEND_IMPLEMENTATION.md`** — FastAPI code patterns, service layer, auth.
 7. **`FRONTEND_IMPLEMENTATION.md`** — Vue 3 components, state, routing, styling.
 8. **`TESTING_STRATEGY.md`** — Unit, API, and end-to-end testing with Playwright MCP.
-9. **`DEPLOYMENT.md`** — Single-container Docker build, GitHub Actions CI/CD.
-10. **`DEPLOYMENT_HANDOFF_TEMPLATE.md`** — Template the implementation agent fills in for the deployment agent.
+9. **`DEPLOYMENT.md`** — Self-contained ops manual for the deployment agent (image, env vars, sample compose, NGINX, deploy steps, known quirks).
 
 ## Core Requirements Summary
 
