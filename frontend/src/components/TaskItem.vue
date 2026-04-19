@@ -112,12 +112,12 @@ function fmtDate(iso) {
       'opacity-50': task.status === 'canceled',
     }"
   >
-    <!-- Drag handle (desktop hover only, ignored when not 'open') -->
+    <!-- Drag handle — visible inside the row (always shown for open tasks). -->
     <span
       v-if="task.status === 'open' && !readonly"
-      class="drag-handle hidden group-hover:block absolute left-0 top-1/2 -translate-y-1/2 -ml-4 cursor-grab text-gray-300"
+      class="drag-handle flex-shrink-0 self-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none leading-none"
       title="Drag to reorder"
-      aria-hidden="true"
+      aria-label="Drag to reorder"
     >⋮⋮</span>
 
     <!-- Status icon / checkbox -->

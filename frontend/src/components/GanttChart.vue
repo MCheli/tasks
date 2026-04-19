@@ -12,7 +12,8 @@ const props = defineProps({
 const ROW_HEIGHT = 28
 const ROW_GAP = 4
 const LABEL_WIDTH = 220 // px reserved on the left for "#42  Title"
-const PADDING_TOP = 32
+const CYCLE_BAND_HEIGHT = 22 // colored cycle bar at the top of the chart
+const PADDING_TOP = CYCLE_BAND_HEIGHT + 14 // band + a little breathing room
 const PADDING_BOTTOM = 16
 const CHART_MIN_WIDTH = 800
 
@@ -21,6 +22,9 @@ const STATUS_COLOR = {
   completed: '#10b981', // emerald-500
   canceled: '#9ca3af', // gray-400
 }
+
+// Alternating cycle band fills (low-saturation indigo / slate).
+const CYCLE_BAND_FILLS = ['#eef2ff', '#f1f5f9']
 
 // ---------------------------------------------------------------------------
 // Time scale
@@ -60,17 +64,45 @@ function xFor(ms) {
 
 const todayX = computed(() => xFor(Date.now()))
 
+function fmtShort(iso) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 // ---------------------------------------------------------------------------
-// Cycle gridlines
+// Cycle bands — alternating colored rectangles spanning each cycle's life.
+// Numbered "Cycle 1", "Cycle 2", ... in order of started_at ascending.
 // ---------------------------------------------------------------------------
+const cycleBands = computed(() =>
+  props.cycles.map((c, i) => {
+    const start = new Date(c.started_at).getTime()
+    const end = c.ended_at ? new Date(c.ended_at).getTime() : Date.now()
+    const x1 = xFor(start)
+    const x2 = xFor(end)
+    const width = Math.max(2, x2 - x1)
+    const labelDate = c.ended_at
+      ? `${fmtShort(c.started_at)} – ${fmtShort(c.ended_at)}`
+      : `${fmtShort(c.started_at)} – now`
+    return {
+      id: c.id,
+      x: x1,
+      width,
+      fill: CYCLE_BAND_FILLS[i % CYCLE_BAND_FILLS.length],
+      number: i + 1,
+      isCurrent: !c.ended_at,
+      label: `Cycle ${i + 1}`,
+      sublabel: labelDate,
+    }
+  })
+)
+
+// Vertical gridlines at every cycle boundary (start of each cycle).
 const cycleLines = computed(() =>
   props.cycles.map((c) => ({
     id: c.id,
     x: xFor(new Date(c.started_at).getTime()),
-    label: new Date(c.started_at).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    }),
   }))
 )
 
@@ -118,32 +150,57 @@ const rows = computed(() =>
       role="img"
       aria-label="Task lineage timeline"
     >
-      <!-- Cycle gridlines -->
+      <!-- Cycle band — alternating colored rectangles labeled "Cycle 1", "Cycle 2", ... -->
+      <g class="cycle-bands">
+        <g
+          v-for="band in cycleBands"
+          :key="band.id"
+        >
+          <rect
+            :x="band.x"
+            :y="0"
+            :width="band.width"
+            :height="CYCLE_BAND_HEIGHT"
+            :fill="band.fill"
+            :stroke="band.isCurrent ? '#6366f1' : '#cbd5e1'"
+            stroke-width="0.5"
+          >
+            <title>{{ band.label }} ({{ band.sublabel }})</title>
+          </rect>
+          <text
+            :x="band.x + 6"
+            :y="14"
+            font-size="10"
+            font-weight="600"
+            :fill="band.isCurrent ? '#4338ca' : '#475569'"
+          >
+            {{ band.label }}<tspan
+              dx="6"
+              font-weight="400"
+              fill="#94a3b8"
+            >{{ band.sublabel }}</tspan>
+          </text>
+        </g>
+      </g>
+
+      <!-- Vertical gridlines at each cycle boundary, below the band -->
       <g class="grid">
         <line
           v-for="line in cycleLines"
           :key="line.id"
           :x1="line.x"
-          :y1="0"
+          :y1="CYCLE_BAND_HEIGHT"
           :x2="line.x"
           :y2="chartHeight"
           stroke="#e5e7eb"
           stroke-width="1"
         />
-        <text
-          v-for="line in cycleLines"
-          :key="`label-${line.id}`"
-          :x="line.x + 3"
-          :y="14"
-          font-size="10"
-          fill="#9ca3af"
-        >{{ line.label }}</text>
       </g>
 
       <!-- Today marker -->
       <line
         :x1="todayX"
-        :y1="PADDING_TOP - 4"
+        :y1="CYCLE_BAND_HEIGHT"
         :x2="todayX"
         :y2="chartHeight - PADDING_BOTTOM"
         stroke="#f59e0b"
