@@ -49,15 +49,35 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_JWT_EXPIRE_DAYS` | no | Session lifetime. Default `7`. | `7` |
 | `TASKS_COOKIE_SECURE` | yes (prod) | **Must be `true` behind HTTPS.** | `true` |
 | `TASKS_COOKIE_DOMAIN` | no | Leave blank unless cross-subdomain SSO is wanted. | _(empty)_ |
-| `TASKS_TEST_USER_EMAIL` | yes (until SSO) | Fallback login identity. Seeded on first startup if missing. | `claudius@markcheli.com` |
-| `TASKS_TEST_USER_PASSWORD` | yes (until SSO) | Paired password. Same value as in Mark's existing dev `.env`. | _(from Mark)_ |
-| `TASKS_GOOGLE_CLIENT_ID` | no | Google OAuth client ID. Leave blank until Mark completes Google Cloud Console setup. | `123.apps.googleusercontent.com` |
-| `TASKS_GOOGLE_CLIENT_SECRET` | no | Paired Google OAuth secret. | `GOCSPX-...` |
-| `TASKS_GOOGLE_REDIRECT_URI` | no | Must match exactly what's configured in Google Cloud Console. | `https://tasks.markcheli.com/api/auth/google/callback` |
+| `TASKS_TEST_USER_EMAIL` | no (fallback) | Optional fallback login identity. Seeded on first startup if both are set. The password form is hidden in the UI whenever Google OAuth is configured, so this only matters when Google is NOT set. | `claudius@markcheli.com` |
+| `TASKS_TEST_USER_PASSWORD` | no (fallback) | Paired password. Same caveat — only used when Google isn't set. | _(from Mark)_ |
+| `TASKS_GOOGLE_CLIENT_ID` | yes (prod) | Google OAuth client ID. Mark has already created the OAuth app; he'll provide the rotated value. | `123.apps.googleusercontent.com` |
+| `TASKS_GOOGLE_CLIENT_SECRET` | yes (prod) | Paired Google OAuth secret. | `GOCSPX-...` |
+| `TASKS_GOOGLE_REDIRECT_URI` | yes (prod) | Must match exactly one of the redirect URIs registered in Google Cloud Console. | `https://tasks.markcheli.com/api/auth/google/callback` |
 | `TASKS_ALLOWED_ORIGINS` | yes | Comma-separated list. Production should be the exact prod URL. | `https://tasks.markcheli.com` |
 | `TASKS_STATIC_DIR` | no | Override the static-files location (defaults to `/app/static`). | _(empty)_ |
 
-**Secrets:** `TASKS_JWT_SECRET`, `TASKS_DATABASE_URL`, `TASKS_TEST_USER_PASSWORD`, `TASKS_GOOGLE_CLIENT_SECRET`. Pull from the deployment agent's secret manager. Never commit to a repo.
+**Secrets:** `TASKS_JWT_SECRET`, `TASKS_DATABASE_URL`, `TASKS_GOOGLE_CLIENT_SECRET` (and `TASKS_TEST_USER_PASSWORD` if used). Pull from the deployment agent's secret manager. Never commit to a repo.
+
+### Sample env file
+
+```dotenv
+# /opt/markcheli/tasks.env
+TASKS_ENV=production
+TASKS_ENABLE_DOCS=false
+TASKS_DATABASE_URL=postgresql+asyncpg://cycle_todo:DB_PASSWORD@db.internal:5432/cycle_todo
+TASKS_JWT_SECRET=<openssl rand -hex 32>
+TASKS_COOKIE_SECURE=true
+TASKS_ALLOWED_ORIGINS=https://tasks.markcheli.com
+
+TASKS_GOOGLE_CLIENT_ID=<from Mark>
+TASKS_GOOGLE_CLIENT_SECRET=<from Mark>
+TASKS_GOOGLE_REDIRECT_URI=https://tasks.markcheli.com/api/auth/google/callback
+
+# Optional fallback (only used if Google vars are blank):
+# TASKS_TEST_USER_EMAIL=
+# TASKS_TEST_USER_PASSWORD=
+```
 
 ## Sample `docker-compose.yml` (production)
 
@@ -132,7 +152,7 @@ server {
    GRANT ALL PRIVILEGES ON DATABASE cycle_todo TO cycle_todo;
    ```
 
-2. **Create the env file** at e.g. `/opt/markcheli/tasks.env`. Use `openssl rand -hex 32` for the JWT secret. Leave Google vars blank for now.
+2. **Create the env file** at e.g. `/opt/markcheli/tasks.env` using the sample above. Generate `TASKS_JWT_SECRET` with `openssl rand -hex 32`. Get the Google credentials from Mark (he'll have rotated them post-development).
 
 3. **Pull and run:**
    ```bash
@@ -150,9 +170,10 @@ server {
 5. **Configure NGINX** for `tasks.markcheli.com` → `127.0.0.1:8000`. Reload.
 
 6. **Smoke test:**
-   - Visit `https://tasks.markcheli.com` — login page renders.
-   - Log in with the test user. Land on `/cycle`.
+   - Visit `https://tasks.markcheli.com` — login page renders showing only the "Continue with Google" button (because Google is configured).
+   - Click it. Authenticate with Mark's Google account. Land on `/cycle`.
    - Add a task. Reload. Confirm persistence.
+   - If anything's wrong: `docker compose logs tasks` and look for warnings around `Authlib`, `OAuth`, or `seed`.
 
 ## Updates
 
@@ -184,19 +205,19 @@ If a rollback would require a schema downgrade, run Alembic manually first. (App
 - The image runs migrations on every start. If two replicas start simultaneously, alembic's transactional DDL serializes — safe but noisy in logs.
 - The cycle uniqueness constraint (one active cycle per user+category) is enforced as a partial unique index. This is correct but means parallel cycle-create requests for the same user+category would fail one of them — not a real concern for a single-user app.
 - The container expects the DB to be reachable within 60 seconds of startup. Past that, the entrypoint exits non-zero and the orchestrator restarts.
-- Google OAuth routes return `503 not configured` until both `TASKS_GOOGLE_CLIENT_ID` and `TASKS_GOOGLE_CLIENT_SECRET` are set. The frontend's "Sign in with Google" button is disabled with a tooltip until then.
+- **Login UI behavior is reactive:** when both `TASKS_GOOGLE_CLIENT_ID` and `TASKS_GOOGLE_CLIENT_SECRET` are set, the login page shows ONLY a "Continue with Google" button and the password form is hidden. If those vars are missing, the page falls back to the email/password form and the Google routes return `503`. Restarting the container after toggling the env is required for the change to take effect.
+- **Two cookies are set:** `session` (httpOnly JWT — the actual auth state) and `tasks_oauth_state` (Authlib's signed cookie for CSRF state during the Google round-trip; emptied after callback). Both use SameSite=Lax. NGINX must forward Set-Cookie verbatim (default behavior — no special config needed).
+- **JWT secret is reused** for the OAuth state cookie's signing key. Rotating `TASKS_JWT_SECRET` invalidates both: existing user sessions and any in-flight OAuth redirects (those will fail their state check). Schedule rotation accordingly.
+- bcrypt is pinned to `>=4.0,<4.1` because passlib 1.7.x reads `bcrypt.__about__` which 4.1+ removed. Don't bump bcrypt without checking passlib first.
+- The Google "Test user" list in Google Cloud Console gates who can actually sign in. Until the OAuth app is "Verified" by Google (overkill for this), only listed test users (Mark's email) can authenticate. To add another user later, add them to that list in the Cloud Console.
 
 ## Post-deploy tasks (Mark)
 
-1. Complete Google OAuth setup in Google Cloud Console:
-   - Create project "Tasks".
-   - APIs & Services → OAuth consent screen → External; add Mark as a test user.
-   - APIs & Services → Credentials → OAuth 2.0 Client ID → Web application.
-   - Authorized redirect URIs: `https://tasks.markcheli.com/api/auth/google/callback` (and `http://localhost:8001/api/auth/google/callback` if testing locally).
-   - Set `TASKS_GOOGLE_CLIENT_ID`, `TASKS_GOOGLE_CLIENT_SECRET`, `TASKS_GOOGLE_REDIRECT_URI`. Restart the container.
-2. Optional: set up `pg_dump` cron on the DB host.
-3. Optional: rotate the test user password by running a SQL update against `users.hashed_password` (no UI for this in v1).
+1. **Rotate the Google client secret in Google Cloud Console** before handing it to the deployment agent. The dev secret was used during build/test and may be in development logs.
+2. Confirm the production redirect URI `https://tasks.markcheli.com/api/auth/google/callback` is in the OAuth client's "Authorized redirect URIs" list (it should already be — was added during initial setup).
+3. Optional: set up `pg_dump` cron on the DB host.
+4. Optional: add additional Google accounts to the OAuth consent screen "Test users" list if you want anyone else to be able to sign in.
 
 ---
 
-*Last updated: 2026-04-19 by implementation agent.*
+*Last updated: 2026-04-19 by implementation agent. Image `ghcr.io/mcheli/tasks:latest` is live and public on GHCR; CI + Release workflows green.*
