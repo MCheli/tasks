@@ -56,11 +56,13 @@ app.add_middleware(
 )
 
 # Authlib stores OAuth state across the Google round-trip in this signed
-# cookie. JWT_SECRET is reused — different from the session JWT, but the
-# secret material is fine to share for this purpose.
+# cookie. Use a name distinct from our JWT session cookie ('session') so
+# Starlette doesn't overwrite the JWT when it serializes the (empty)
+# OAuth-state session at end-of-request.
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.JWT_SECRET,
+    session_cookie="tasks_oauth_state",
     https_only=settings.COOKIE_SECURE,
     same_site="lax",
 )
