@@ -12,7 +12,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
@@ -81,7 +80,13 @@ class Task(Base):
         CheckConstraint(
             "status IN ('open','completed','canceled')", name="ck_tasks_status"
         ),
-        UniqueConstraint("user_id", "display_id", name="uq_tasks_user_display_id"),
+        # display_id is unique per *lineage* (persistent_task_id), not per row.
+        # The spec text said per-user-unique, but a forwarded row shares the
+        # display_id with its predecessor, so per-row uniqueness is impossible.
+        # Keep an index for lookup performance; uniqueness is enforced
+        # implicitly by allocate_display_id always issuing a fresh integer
+        # and by every new persistent_task_id getting one allocation.
+        Index("ix_tasks_user_display_id", "user_id", "display_id"),
         Index(
             "ix_tasks_cycle_filter",
             "cycle_id",

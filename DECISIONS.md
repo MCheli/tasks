@@ -107,6 +107,16 @@ Format:
 **Rationale:** Host port 8000 is occupied by another project's backend (personal-finance). 8001 keeps the projects independent.
 **Conflicts with:** README.md / DEPLOYMENT.md (referenced :8000 for local). Production NGINX still proxies to container port 8000.
 
+## 2026-04-19 — display_id uniqueness rule
+**Decision:** `display_id` is unique per *lineage* (per `persistent_task_id`), not per row. The DATABASE_SCHEMA.md `UNIQUE (user_id, display_id)` constraint is replaced with a non-unique INDEX. The `display_id_sequences` allocator only issues a new integer on `create_task` (when a new `persistent_task_id` is minted), so duplicates within a user can only happen across rows of the same lineage — which is the intent (so users can refer to "task #42" across cycles).
+**Rationale:** The schema spec was internally inconsistent: it requires forwarded rows to share `display_id` *and* requires `(user_id, display_id)` to be unique. Both can't hold. Forwarded-rows-share-display-id is the user-visible behavior, so that wins.
+**Conflicts with:** DATABASE_SCHEMA.md §tasks indexes block.
+
+## 2026-04-19 — Cycle transition row ordering
+**Decision:** During `transition_cycle`, the old cycle's `ended_at` is set BEFORE the new cycle is inserted. Without this, the partial-unique index `(user_id, category) WHERE ended_at IS NULL` fires immediately on the new INSERT (Postgres evaluates partial unique indexes synchronously, not at commit).
+**Rationale:** Partial UNIQUE indexes can't be DEFERRABLE in Postgres. Reordering the writes is cheaper than restructuring the constraint.
+**Conflicts with:** DATABASE_SCHEMA.md §"Example: Cycle Transition" lists steps in the opposite order. Functionally equivalent; this version actually works.
+
 ## 2026-04-19 — Vue draggable lib version
 **Decision:** Use `vuedraggable@4.1.0` (the Vue 3 compatible release line).
 **Rationale:** Earlier 2.x line is Vue 2 only.
