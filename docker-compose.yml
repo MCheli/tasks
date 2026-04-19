@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: cycle_todo
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: cycle_todo
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cycle_todo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  db-test:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cycle_todo_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    image: ghcr.io/mcheli/tasks:dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TASKS_ENV: ${TASKS_ENV:-development}
+      TASKS_DATABASE_URL: postgresql+asyncpg://cycle_todo:changeme@db:5432/cycle_todo
+      TASKS_JWT_SECRET: ${TASKS_JWT_SECRET:-dev-only-not-secret-change-me}
+      TASKS_JWT_EXPIRE_DAYS: ${TASKS_JWT_EXPIRE_DAYS:-7}
+      TASKS_COOKIE_SECURE: "false"
+      TASKS_TEST_USER_EMAIL: ${TASKS_TEST_USER_EMAIL:-}
+      TASKS_TEST_USER_PASSWORD: ${TASKS_TEST_USER_PASSWORD:-}
+      TASKS_ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:8000"
+    ports:
+      - "8001:8000"
+
+volumes:
+  pg_data:
