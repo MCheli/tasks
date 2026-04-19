@@ -1,11 +1,12 @@
 """Fixtures specific to API-level tests."""
+
 from __future__ import annotations
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from app.dependencies import get_current_user  # noqa: F401  (for type clarity)
 from app.db.session import get_db
+from app.dependencies import get_current_user  # noqa: F401  (for type clarity)
 from app.main import app
 
 

@@ -1,7 +1,6 @@
 """API tests for /api/cycles/*."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 
 async def test_get_current_creates_cycle(authed_client):
@@ -26,17 +25,13 @@ async def test_list_cycles_empty(authed_client):
 
 async def test_get_other_users_cycle_404(client, test_user, other_user):
     # Log in as test_user and create their cycle.
-    await client.post(
-        "/api/auth/login", json={"email": test_user.email, "password": "secret"}
-    )
+    await client.post("/api/auth/login", json={"email": test_user.email, "password": "secret"})
     resp = await client.get("/api/cycles/current", params={"category": "personal"})
     cycle_id = resp.json()["cycle"]["id"]
 
     # Switch users.
     await client.post("/api/auth/logout")
-    await client.post(
-        "/api/auth/login", json={"email": other_user.email, "password": "secret"}
-    )
+    await client.post("/api/auth/login", json={"email": other_user.email, "password": "secret"})
     resp = await client.get(f"/api/cycles/{cycle_id}")
     assert resp.status_code == 404
 

@@ -1,4 +1,5 @@
 """Unit tests for cycle_service: auto-create, get, list, transition logic."""
+
 from __future__ import annotations
 
 import pytest
@@ -28,9 +29,7 @@ async def test_personal_and_professional_independent(db, test_user):
 
 
 async def test_transition_forward_creates_lineage(db, test_user):
-    t = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="A")
-    )
+    t = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="A"))
     cycle = await cycle_service.get_or_create_current_cycle(db, test_user, "personal")
     res = await cycle_service.transition_cycle(
         db,
@@ -46,15 +45,9 @@ async def test_transition_forward_creates_lineage(db, test_user):
 
 
 async def test_transition_complete_and_cancel(db, test_user):
-    a = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="A")
-    )
-    b = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="B")
-    )
-    c = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="C")
-    )
+    a = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="A"))
+    b = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="B"))
+    c = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="C"))
     cycle = await cycle_service.get_or_create_current_cycle(db, test_user, "personal")
     res = await cycle_service.transition_cycle(
         db,
@@ -72,12 +65,8 @@ async def test_transition_complete_and_cancel(db, test_user):
 
 
 async def test_transition_missing_action_rejected(db, test_user):
-    a = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="A")
-    )
-    b = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="B")
-    )
+    a = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="A"))
+    b = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="B"))
     cycle = await cycle_service.get_or_create_current_cycle(db, test_user, "personal")
     with pytest.raises(HTTPException) as exc:
         await cycle_service.transition_cycle(
@@ -90,9 +79,7 @@ async def test_transition_missing_action_rejected(db, test_user):
 
 
 async def test_transition_already_closed(db, test_user):
-    t = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="A")
-    )
+    t = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="A"))
     cycle = await cycle_service.get_or_create_current_cycle(db, test_user, "personal")
     await cycle_service.transition_cycle(
         db,
@@ -107,9 +94,7 @@ async def test_transition_already_closed(db, test_user):
 
 
 async def test_push_forward_count_grows(db, test_user):
-    t = await task_service.create_task(
-        db, test_user, TaskCreate(category="personal", title="X")
-    )
+    t = await task_service.create_task(db, test_user, TaskCreate(category="personal", title="X"))
     pid = t.persistent_task_id
 
     # 1st transition: forward.

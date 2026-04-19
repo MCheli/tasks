@@ -1,7 +1,6 @@
 """API tests for /api/auth/* endpoints."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 
 async def test_login_success_sets_cookie(client, test_user):

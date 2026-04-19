@@ -3,15 +3,12 @@
 These tests live at the HTTP layer; the deeper logic is covered in
 tests/unit/test_cycle_service.py.
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 
 async def _create(authed_client, title: str, category: str = "personal") -> dict:
-    r = await authed_client.post(
-        "/api/tasks", json={"category": category, "title": title}
-    )
+    r = await authed_client.post("/api/tasks", json={"category": category, "title": title})
     assert r.status_code == 201, r.text
     return r.json()["task"]
 
@@ -56,9 +53,7 @@ async def test_transition_full_flow(authed_client):
 
 async def test_transition_empty_cycle(authed_client):
     cycle = await _current(authed_client)
-    r = await authed_client.post(
-        f"/api/cycles/{cycle['id']}/transition", json={"actions": []}
-    )
+    r = await authed_client.post(f"/api/cycles/{cycle['id']}/transition", json={"actions": []})
     assert r.status_code == 201
     assert r.json()["summary"] == {"forwarded": 0, "completed": 0, "canceled": 0}
 
@@ -104,9 +99,7 @@ async def test_transition_double_call_returns_409(authed_client):
         json={"actions": [{"persistent_task_id": pid, "action": "forward"}]},
     )
     assert first.status_code == 201
-    again = await authed_client.post(
-        f"/api/cycles/{cycle['id']}/transition", json={"actions": []}
-    )
+    again = await authed_client.post(f"/api/cycles/{cycle['id']}/transition", json={"actions": []})
     assert again.status_code == 409
 
 
@@ -115,11 +108,7 @@ async def test_historical_task_patch_rejected(authed_client):
     cycle = await _current(authed_client)
     await authed_client.post(
         f"/api/cycles/{cycle['id']}/transition",
-        json={
-            "actions": [
-                {"persistent_task_id": a["persistent_task_id"], "action": "complete"}
-            ]
-        },
+        json={"actions": [{"persistent_task_id": a["persistent_task_id"], "action": "complete"}]},
     )
     # The OLD row (a["id"]) is now in a closed cycle. PATCH should 403.
     r = await authed_client.patch(f"/api/tasks/{a['id']}", json={"title": "Hacked"})

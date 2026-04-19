@@ -1,4 +1,5 @@
 """Unit tests for the per-user display_id allocator."""
+
 from __future__ import annotations
 
 from app.services.display_id_service import allocate_display_id

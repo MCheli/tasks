@@ -1,4 +1,5 @@
 """FastAPI dependencies — get_db, get_current_user."""
+
 from __future__ import annotations
 
 from fastapi import Cookie, Depends, HTTPException, status

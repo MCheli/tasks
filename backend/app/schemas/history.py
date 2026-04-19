@@ -1,4 +1,5 @@
 """Schemas for the /api/history Gantt endpoint."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,7 +7,6 @@ from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-
 
 Status = Literal["open", "completed", "canceled"]
 

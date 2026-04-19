@@ -1,7 +1,9 @@
 """FastAPI application entry point."""
+
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -94,8 +96,6 @@ except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule er
 
 # Static frontend (production build copied to /app/static by Dockerfile).
 # Path is configurable via TASKS_STATIC_DIR for dev experimentation.
-import os
-
 STATIC_DIR = Path(os.environ.get("TASKS_STATIC_DIR", "/app/static"))
 
 if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():

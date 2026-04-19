@@ -1,7 +1,8 @@
 """Password hashing and JWT helpers."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from jose import JWTError, jwt
@@ -28,7 +29,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: UUID) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user_id),
         "iat": int(now.timestamp()),
@@ -40,9 +41,7 @@ def create_access_token(user_id: UUID) -> str:
 def decode_access_token(token: str) -> UUID | None:
     """Return the user_id encoded in the token, or None if invalid/expired."""
     try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         return UUID(payload["sub"])
     except (JWTError, ValueError, KeyError):
         return None

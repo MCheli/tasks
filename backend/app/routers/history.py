@@ -1,4 +1,5 @@
 """History endpoint — Gantt-shaped lineage data."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query

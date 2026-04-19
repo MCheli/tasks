@@ -1,4 +1,5 @@
 """Application configuration sourced from env (TASKS_ prefix) and .env file."""
+
 from __future__ import annotations
 
 from functools import lru_cache

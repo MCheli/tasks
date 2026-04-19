@@ -1,4 +1,5 @@
 """Authentication routes — login, logout, me, Google OAuth scaffolds."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -52,8 +53,10 @@ async def login(
         # Fall back to as-typed match in case the DB has mixed case.
         user = await db.scalar(select(User).where(User.email == payload.email))
 
-    if not user or not user.hashed_password or not verify_password(
-        payload.password, user.hashed_password
+    if (
+        not user
+        or not user.hashed_password
+        or not verify_password(payload.password, user.hashed_password)
     ):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
 

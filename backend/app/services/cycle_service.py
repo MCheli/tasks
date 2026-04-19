@@ -2,10 +2,11 @@
 
 Transition logic lives here too but is exercised in Phase 3 tests.
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -39,9 +40,7 @@ def _check_category(category: str) -> None:
         )
 
 
-async def get_or_create_current_cycle(
-    db: AsyncSession, user: User, category: str
-) -> Cycle:
+async def get_or_create_current_cycle(db: AsyncSession, user: User, category: str) -> Cycle:
     """Return the user's active cycle in this category, creating one if needed."""
     _check_category(category)
     existing = await db.scalar(
@@ -63,17 +62,13 @@ async def get_or_create_current_cycle(
 
 async def get_cycle(db: AsyncSession, user: User, cycle_id: UUID) -> Cycle:
     """Load a cycle owned by the user or raise 404."""
-    cycle = await db.scalar(
-        select(Cycle).where(Cycle.id == cycle_id, Cycle.user_id == user.id)
-    )
+    cycle = await db.scalar(select(Cycle).where(Cycle.id == cycle_id, Cycle.user_id == user.id))
     if not cycle:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cycle not found")
     return cycle
 
 
-async def _load_cycle_tasks(
-    db: AsyncSession, user: User, cycle: Cycle
-) -> dict[str, list[Task]]:
+async def _load_cycle_tasks(db: AsyncSession, user: User, cycle: Cycle) -> dict[str, list[Task]]:
     """Return tasks for a cycle, grouped by status. Excludes deleted rows.
 
     Sort: position ASC within each group.
@@ -129,11 +124,12 @@ async def list_cycles(
     )
     cycle_rows = list((await db.execute(cycles_q)).scalars())
 
-    total = await db.scalar(
-        select(func.count(Cycle.id)).where(
-            Cycle.user_id == user.id, Cycle.category == category
+    total = (
+        await db.scalar(
+            select(func.count(Cycle.id)).where(Cycle.user_id == user.id, Cycle.category == category)
         )
-    ) or 0
+        or 0
+    )
 
     if not cycle_rows:
         return CycleListResponse(cycles=[], total=int(total))
@@ -176,9 +172,7 @@ async def transition_cycle(
     actions: list[TransitionAction],
 ) -> TransitionResponse:
     """Close `cycle_id` and create a new active cycle for the same category."""
-    old_cycle = await db.scalar(
-        select(Cycle).where(Cycle.id == cycle_id, Cycle.user_id == user.id)
-    )
+    old_cycle = await db.scalar(select(Cycle).where(Cycle.id == cycle_id, Cycle.user_id == user.id))
     if not old_cycle:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cycle not found")
     if old_cycle.ended_at is not None:
@@ -217,7 +211,7 @@ async def transition_cycle(
             "Actions reference tasks that are not open in this cycle",
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     forwarded_count = completed_count = canceled_count = 0
 
     # 1. Resolve old cycle rows.

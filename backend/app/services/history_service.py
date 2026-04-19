@@ -1,8 +1,9 @@
 """Build the lineage shape consumed by the Gantt-style HistoryView."""
+
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,9 +19,7 @@ from app.schemas.history import (
 )
 
 
-async def get_history(
-    db: AsyncSession, user: User, category: str
-) -> HistoryResponse:
+async def get_history(db: AsyncSession, user: User, category: str) -> HistoryResponse:
     cycles = list(
         (
             await db.execute(
@@ -52,7 +51,7 @@ async def get_history(
     for task, cycle in rows:
         by_pid[task.persistent_task_id].append((task, cycle))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lineages: list[Lineage] = []
     for pid, items in by_pid.items():
         items.sort(key=lambda tc: tc[1].started_at)
@@ -85,7 +84,7 @@ async def get_history(
             )
         )
     # Oldest lineages at top.
-    lineages.sort(key=lambda l: l.first_seen_at)
+    lineages.sort(key=lambda lineage: lineage.first_seen_at)
 
     return HistoryResponse(
         cycles=[CycleBoundary.model_validate(c) for c in cycles],

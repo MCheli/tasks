@@ -1,4 +1,5 @@
 """Task and DisplayIdSequence models."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -24,13 +25,9 @@ class Task(Base):
     __tablename__ = "tasks"
 
     # Per-cycle row identity.
-    id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
     # Stable identity across the task's lineage (forward-carries share this UUID).
-    persistent_task_id: Mapped[UUID] = mapped_column(
-        PG_UUID(as_uuid=True), nullable=False
-    )
+    persistent_task_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     # Per-user incrementing integer (e.g. #42).
     display_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -64,22 +61,14 @@ class Task(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    canceled_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    canceled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    cycle: Mapped["Cycle"] = relationship(back_populates="tasks")  # noqa: F821
+    cycle: Mapped[Cycle] = relationship(back_populates="tasks")  # noqa: F821
 
     __table_args__ = (
-        CheckConstraint(
-            "status IN ('open','completed','canceled')", name="ck_tasks_status"
-        ),
+        CheckConstraint("status IN ('open','completed','canceled')", name="ck_tasks_status"),
         # display_id is unique per *lineage* (persistent_task_id), not per row.
         # The spec text said per-user-unique, but a forwarded row shares the
         # display_id with its predecessor, so per-row uniqueness is impossible.

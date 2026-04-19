@@ -5,7 +5,14 @@ extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
-ignore = ["E501"]  # let black handle line length
+ignore = [
+    "E501",  # let black handle line length
+    "B008",  # FastAPI's Depends() in defaults is the canonical pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]   # imports must follow os.environ.setdefault
+"tests/**/*.py" = ["F841"]       # tests sometimes assign for readability
 
 [tool.black]
 line-length = 100

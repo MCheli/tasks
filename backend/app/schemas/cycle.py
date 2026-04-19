@@ -1,4 +1,5 @@
 """Cycle-related Pydantic schemas."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,7 +9,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.task import TaskOut
-
 
 Category = Literal["personal", "professional"]
 

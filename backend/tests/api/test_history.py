@@ -1,4 +1,5 @@
 """API tests for /api/history."""
+
 from __future__ import annotations
 
 
@@ -34,7 +35,7 @@ async def test_history_after_one_transition(authed_client):
     body = h.json()
     assert len(body["cycles"]) == 2
     # Two lineages: A spans 2 cycles (forwarded), B spans 1 cycle (completed).
-    by_title = {l["title"]: l for l in body["lineages"]}
+    by_title = {lin["title"]: lin for lin in body["lineages"]}
     assert by_title["A"]["push_forward_count"] == 1
     assert by_title["A"]["latest_status"] == "open"
     assert len(by_title["A"]["spans"]) == 2

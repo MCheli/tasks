@@ -5,6 +5,7 @@ asyncpg connection objects stay attached to a single loop. Per-test
 isolation is provided by wrapping each test in a connection-level
 transaction that rolls back at teardown (the SAVEPOINT pattern).
 """
+
 from __future__ import annotations
 
 import os
@@ -49,9 +50,7 @@ async def db(engine) -> AsyncIterator[AsyncSession]:
     """Per-test session bound to a transaction that rolls back at teardown."""
     connection = await engine.connect()
     transaction = await connection.begin()
-    Session = async_sessionmaker(
-        bind=connection, expire_on_commit=False, class_=AsyncSession
-    )
+    Session = async_sessionmaker(bind=connection, expire_on_commit=False, class_=AsyncSession)
     session = Session()
     try:
         yield session

@@ -1,4 +1,5 @@
 """Helpers to convert ORM Task rows into TaskOut schemas with derived fields."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -50,9 +51,7 @@ async def to_task_out(db: AsyncSession, user: User, task: Task) -> TaskOut:
     return TaskOut.model_validate(_task_to_dict(task, pf))
 
 
-async def to_task_out_many(
-    db: AsyncSession, user: User, tasks: list[Task]
-) -> list[TaskOut]:
+async def to_task_out_many(db: AsyncSession, user: User, tasks: list[Task]) -> list[TaskOut]:
     """Bulk variant — one COUNT query for all persistent_task_ids."""
     if not tasks:
         return []
@@ -71,7 +70,4 @@ async def to_task_out_many(
     counts: dict[UUID, int] = defaultdict(int)
     for pid, n in rows:
         counts[pid] = max(0, int(n) - 1)
-    return [
-        TaskOut.model_validate(_task_to_dict(t, counts[t.persistent_task_id]))
-        for t in tasks
-    ]
+    return [TaskOut.model_validate(_task_to_dict(t, counts[t.persistent_task_id])) for t in tasks]

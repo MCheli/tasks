@@ -1,7 +1,8 @@
 """Task business logic — CRUD, soft delete, reorder, lineage detail."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -82,9 +83,7 @@ async def create_task(db: AsyncSession, user: User, payload: TaskCreate) -> Task
     return await to_task_out(db, user, task)
 
 
-async def update_task(
-    db: AsyncSession, user: User, task_id: UUID, payload: TaskUpdate
-) -> TaskOut:
+async def update_task(db: AsyncSession, user: User, task_id: UUID, payload: TaskUpdate) -> TaskOut:
     task, cycle = await _get_user_task_with_cycle(db, user, task_id)
     if cycle.ended_at is not None:
         raise HTTPException(
@@ -92,7 +91,7 @@ async def update_task(
             "Historical tasks are immutable; PATCH only the current cycle's tasks.",
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if payload.title is not None:
         task.title = payload.title
@@ -125,7 +124,7 @@ async def update_task(
 async def soft_delete_lineage(db: AsyncSession, user: User, task_id: UUID) -> None:
     """Delete this task's entire lineage (every row sharing persistent_task_id)."""
     task = await _get_user_task(db, user, task_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     await db.execute(
         update(Task)
         .where(
@@ -205,9 +204,7 @@ async def _reorder_within_cycle(
             t.position = i
 
 
-async def get_task_with_lineage(
-    db: AsyncSession, user: User, task_id: UUID
-) -> TaskDetailResponse:
+async def get_task_with_lineage(db: AsyncSession, user: User, task_id: UUID) -> TaskDetailResponse:
     task = await _get_user_task(db, user, task_id)
 
     # Walk the lineage by persistent_task_id (oldest → newest).

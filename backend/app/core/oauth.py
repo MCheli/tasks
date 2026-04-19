@@ -4,6 +4,7 @@ Wiring is deferred until Mark sets up Google Cloud Console credentials.
 The router exposes /auth/google/login and /auth/google/callback so the
 frontend can render a (disabled) Google button without hitting 404s.
 """
+
 from __future__ import annotations
 
 from app.config import settings

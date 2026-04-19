@@ -1,4 +1,5 @@
 """Unit tests for password hashing and JWT helpers."""
+
 from __future__ import annotations
 
 from uuid import uuid4

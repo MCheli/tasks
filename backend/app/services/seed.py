@@ -3,6 +3,7 @@
 Currently only seeds the test user. No cycles or tasks are created on
 boot — those happen on-demand the first time the user opens a category.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,9 +24,7 @@ async def ensure_test_user() -> None:
         return
 
     async with AsyncSessionLocal() as db:
-        existing = await db.scalar(
-            select(User).where(User.email == settings.TEST_USER_EMAIL)
-        )
+        existing = await db.scalar(select(User).where(User.email == settings.TEST_USER_EMAIL))
         if existing:
             logger.info("Test user %s already exists.", settings.TEST_USER_EMAIL)
             return
