@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { useCyclesStore } from '@/stores/cycles'
 import * as tasksApi from '@/api/tasks'
 
@@ -10,6 +10,23 @@ const expanded = ref(false)
 const submitting = ref(false)
 const titleEl = ref(null)
 const notesEl = ref(null)
+
+function onWindowKey(e) {
+  if (e.key === 'Escape' && expanded.value) {
+    e.preventDefault()
+    collapse()
+  }
+}
+
+watch(expanded, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('keydown', onWindowKey)
+  } else {
+    window.removeEventListener('keydown', onWindowKey)
+  }
+})
+
+onUnmounted(() => window.removeEventListener('keydown', onWindowKey))
 
 async function submit() {
   if (!title.value.trim() || submitting.value) return
