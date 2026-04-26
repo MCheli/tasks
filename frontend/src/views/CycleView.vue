@@ -22,6 +22,7 @@ useKeyboardShortcuts({
   n: () => taskInputRef.value?.focus(),
   'g h': () => router.push('/history'),
   'g c': () => router.push('/cycle'),
+  'g s': () => router.push('/settings'),
 })
 
 async function logout() {
@@ -76,6 +77,14 @@ const cycleStartedRel = computed(() => {
             @click="router.push('/history')"
           >
             <span aria-hidden="true">🕐</span>
+          </button>
+          <button
+            class="p-2 text-gray-500 hover:text-gray-700 rounded"
+            title="Settings"
+            aria-label="Settings"
+            @click="router.push('/settings')"
+          >
+            <span aria-hidden="true">⚙︎</span>
           </button>
           <button
             class="p-2 text-gray-500 hover:text-gray-700 rounded text-xs"

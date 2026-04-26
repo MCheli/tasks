@@ -30,6 +30,11 @@ export const routes = [
     name: 'history',
     component: () => import('@/views/HistoryView.vue'),
   },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsView.vue'),
+  },
   { path: '/:pathMatch(.*)*', redirect: '/cycle' },
 ]
 

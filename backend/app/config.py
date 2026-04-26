@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: str | None = None
 
+    # API keys — pepper for HMAC hashing. Rotating this invalidates all keys.
+    API_KEY_PEPPER: str = Field(default="dev-only-api-key-pepper-change-me")
+
     # Test user (seeded on startup if both set)
     TEST_USER_EMAIL: str | None = None
     TEST_USER_PASSWORD: str | None = None

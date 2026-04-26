@@ -13,7 +13,7 @@ from app.config import settings
 from app.db.base import Base
 
 # Import all models so Base.metadata is fully populated.
-from app.models import cycle, task, user  # noqa: F401
+from app.models import api_key, cycle, task, user  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

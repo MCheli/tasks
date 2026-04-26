@@ -106,6 +106,13 @@ try:
 except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
     logger.info("History router not loaded: %s", _exc)
 
+try:
+    from app.routers import api_keys as _api_keys_router  # noqa: WPS433
+
+    app.include_router(_api_keys_router.router, prefix="/api/api-keys", tags=["api-keys"])
+except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
+    logger.info("API keys router not loaded: %s", _exc)
+
 
 # Static frontend (production build copied to /app/static by Dockerfile).
 # Path is configurable via TASKS_STATIC_DIR for dev experimentation.
