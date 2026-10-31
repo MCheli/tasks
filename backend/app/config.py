@@ -25,6 +25,12 @@ def _find_env_file() -> tuple[str, ...]:
     return tuple(candidates)
 
 
+# Defaults that are public in this repo. Production must override them.
+DEV_JWT_SECRET = "dev-only-not-secret-change-me"
+DEV_API_KEY_PEPPER = "dev-only-api-key-pepper-change-me"
+_PLACEHOLDER_SECRETS = {DEV_JWT_SECRET, "CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_HEX_32", ""}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_find_env_file(),
@@ -42,14 +48,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://cycle_todo:changeme@localhost:5432/cycle_todo"
 
     # Auth
-    JWT_SECRET: str = Field(default="dev-only-not-secret-change-me")
+    JWT_SECRET: str = Field(default=DEV_JWT_SECRET)
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_DAYS: int = 7
     COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: str | None = None
 
     # API keys — pepper for HMAC hashing. Rotating this invalidates all keys.
-    API_KEY_PEPPER: str = Field(default="dev-only-api-key-pepper-change-me")
+    API_KEY_PEPPER: str = Field(default=DEV_API_KEY_PEPPER)
 
     # Test user (seeded on startup if both set)
     TEST_USER_EMAIL: str | None = None
@@ -84,6 +90,34 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENV.lower() == "production"
+
+
+def check_production_settings(s: Settings) -> tuple[list[str], list[str]]:
+    """Return (errors, warnings) for insecure production settings.
+
+    Anyone who knows the JWT secret can mint a session for any user, and the defaults are in git.
+    A default JWT secret is an error, but it is logged rather than raised for now: the prod env
+    hasn't been confirmed, and Watchtower would otherwise auto-deploy a crash loop.
+    TODO: fail closed (raise) once production's TASKS_JWT_SECRET is confirmed set.
+    """
+    if not s.is_production:
+        return [], []
+    errors = []
+    if s.JWT_SECRET in _PLACEHOLDER_SECRETS:
+        errors.append(
+            "TASKS_ENV=production with the default TASKS_JWT_SECRET: anyone can forge sessions. "
+            "Set it to `openssl rand -hex 32`."
+        )
+    warnings = []
+    if len(s.JWT_SECRET) < 32:
+        warnings.append("TASKS_JWT_SECRET is shorter than 32 characters.")
+    if s.API_KEY_PEPPER == DEV_API_KEY_PEPPER:
+        warnings.append(
+            "TASKS_API_KEY_PEPPER is the public default. Setting it invalidates existing API keys."
+        )
+    if not s.COOKIE_SECURE:
+        warnings.append("TASKS_COOKIE_SECURE is false; session cookies can travel over plain HTTP.")
+    return errors, warnings
 
 
 @lru_cache
