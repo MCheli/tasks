@@ -92,16 +92,20 @@ class Settings(BaseSettings):
         return self.ENV.lower() == "production"
 
 
-def check_production_settings(s: Settings) -> list[str]:
-    """Fail closed on a forgeable session secret in production; return softer warnings.
+def check_production_settings(s: Settings) -> tuple[list[str], list[str]]:
+    """Return (errors, warnings) for insecure production settings.
 
     Anyone who knows the JWT secret can mint a session for any user, and the defaults are in git.
+    A default JWT secret is an error, but it is logged rather than raised for now: the prod env
+    hasn't been confirmed, and Watchtower would otherwise auto-deploy a crash loop.
+    TODO: fail closed (raise) once production's TASKS_JWT_SECRET is confirmed set.
     """
     if not s.is_production:
-        return []
+        return [], []
+    errors = []
     if s.JWT_SECRET in _PLACEHOLDER_SECRETS:
-        raise RuntimeError(
-            "FATAL: TASKS_ENV=production with the default TASKS_JWT_SECRET. "
+        errors.append(
+            "TASKS_ENV=production with the default TASKS_JWT_SECRET: anyone can forge sessions. "
             "Set it to `openssl rand -hex 32`."
         )
     warnings = []
@@ -113,7 +117,7 @@ def check_production_settings(s: Settings) -> list[str]:
         )
     if not s.COOKIE_SECURE:
         warnings.append("TASKS_COOKIE_SECURE is false; session cookies can travel over plain HTTP.")
-    return warnings
+    return errors, warnings
 
 
 @lru_cache

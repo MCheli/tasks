@@ -44,7 +44,7 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_ENV` | yes | `production` to disable docs and require secure cookies. | `production` |
 | `TASKS_ENABLE_DOCS` | no | `false` hides `/api/docs`. Default `true`. | `false` |
 | `TASKS_DATABASE_URL` | yes | Async Postgres URL. Must use `postgresql+asyncpg://`. | `postgresql+asyncpg://cycle_todo:SECRET@db.internal:5432/cycle_todo` |
-| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. With `TASKS_ENV=production` the app refuses to start on the in-repo default. | (64 hex chars) |
+| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. With `TASKS_ENV=production` the app logs an ERROR at startup on the in-repo default (fail-closed is planned once prod is confirmed). | (64 hex chars) |
 | `TASKS_API_KEY_PEPPER` | yes (prod) | HMAC pepper for stored API key hashes. `openssl rand -hex 32`. Changing it invalidates every existing API key. Production logs a warning while it is the default. | (64 hex chars) |
 | `TASKS_JWT_ALGORITHM` | no | Default `HS256`. Leave as-is. | `HS256` |
 | `TASKS_JWT_EXPIRE_DAYS` | no | Session lifetime. Default `7`. | `7` |

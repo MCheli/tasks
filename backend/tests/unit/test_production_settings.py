@@ -1,4 +1,4 @@
-"""Production refuses the public default session secret."""
+"""Production flags the public default session secret."""
 
 from __future__ import annotations
 
@@ -21,23 +21,27 @@ def _settings(**overrides) -> Settings:
 
 
 def test_development_is_not_checked():
-    assert check_production_settings(_settings(ENV="development", JWT_SECRET=DEV_JWT_SECRET)) == []
+    assert check_production_settings(_settings(ENV="development", JWT_SECRET=DEV_JWT_SECRET)) == (
+        [],
+        [],
+    )
 
 
 @pytest.mark.parametrize(
     "secret", [DEV_JWT_SECRET, "CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_HEX_32", ""]
 )
-def test_default_jwt_secret_is_fatal_in_production(secret):
-    with pytest.raises(RuntimeError, match="TASKS_JWT_SECRET"):
-        check_production_settings(_settings(JWT_SECRET=secret))
+def test_default_jwt_secret_is_an_error_in_production(secret):
+    errors, _ = check_production_settings(_settings(JWT_SECRET=secret))
+    assert len(errors) == 1 and "TASKS_JWT_SECRET" in errors[0]
 
 
 def test_hardened_production_has_no_warnings():
-    assert check_production_settings(_settings()) == []
+    assert check_production_settings(_settings()) == ([], [])
 
 
 def test_soft_problems_are_warnings():
-    warnings = check_production_settings(
+    errors, warnings = check_production_settings(
         _settings(JWT_SECRET="short", API_KEY_PEPPER=DEV_API_KEY_PEPPER, COOKIE_SECURE=False)
     )
+    assert errors == []
     assert len(warnings) == 3

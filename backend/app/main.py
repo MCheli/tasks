@@ -38,7 +38,10 @@ async def _check_demo() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    for warning in check_production_settings(settings):  # raises on a default JWT secret
+    errors, warnings = check_production_settings(settings)
+    for error in errors:
+        logger.error("INSECURE PRODUCTION SETTING: %s", error)
+    for warning in warnings:
         logger.warning("Insecure production setting: %s", warning)
     if settings.DEMO_MODE:
         await _check_demo()  # raises → the server refuses to start
@@ -148,7 +151,10 @@ def static_file(static_dir: Path, full_path: str) -> Path | None:
     The path arrives percent-decoded, so "..%2f" must not be allowed to escape the directory.
     """
     root = static_dir.resolve()
-    candidate = (root / full_path).resolve()
+    try:
+        candidate = (root / full_path).resolve()
+    except (OSError, ValueError):  # e.g. an embedded NUL byte
+        return None
     if candidate.is_relative_to(root) and candidate.is_file():
         return candidate
     return None

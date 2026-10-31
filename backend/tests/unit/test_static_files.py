@@ -31,3 +31,26 @@ def test_absolute_path_is_refused(tmp_path):
     static.mkdir()
     (tmp_path / "secret.txt").write_text("nope")
     assert static_file(static, str(tmp_path / "secret.txt")) is None
+
+
+def test_nul_byte_is_refused(tmp_path):
+    static = tmp_path / "static"
+    static.mkdir()
+    (static / "favicon.svg").write_text("<svg/>")
+    assert static_file(static, "favicon.svg\x00") is None
+
+
+def test_symlink_out_of_static_dir_is_refused(tmp_path):
+    static = tmp_path / "static"
+    static.mkdir()
+    (tmp_path / "secret.txt").write_text("nope")
+    (static / "link.txt").symlink_to(tmp_path / "secret.txt")
+    assert static_file(static, "link.txt") is None
+
+
+def test_sibling_prefix_dir_is_refused(tmp_path):
+    static = tmp_path / "static"
+    static.mkdir()
+    (tmp_path / "static-evil").mkdir()
+    (tmp_path / "static-evil" / "x").write_text("nope")
+    assert static_file(static, "../static-evil/x") is None
