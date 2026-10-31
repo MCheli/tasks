@@ -101,3 +101,58 @@ async def test_google_login_redirects_when_configured(client, monkeypatch):
     resp = await client.get("/api/auth/google/login", follow_redirects=False)
     assert resp.status_code in (302, 307)
     assert "accounts.google.com" in resp.headers.get("location", "")
+
+
+async def test_login_is_limited_after_repeated_failures(client, test_user):
+    from app.core.rate_limit import login_limiter
+
+    login_limiter.reset()
+    try:
+        for _ in range(login_limiter.max_failures):
+            resp = await client.post(
+                "/api/auth/login", json={"email": test_user.email, "password": "nope"}
+            )
+            assert resp.status_code == 401
+        # Even the right password is refused until the window passes.
+        resp = await client.post(
+            "/api/auth/login", json={"email": test_user.email.upper(), "password": "secret"}
+        )
+        assert resp.status_code == 429
+    finally:
+        login_limiter.reset()
+
+
+async def test_successful_login_clears_failures(client, test_user):
+    from app.core.rate_limit import login_limiter
+
+    login_limiter.reset()
+    try:
+        for _ in range(login_limiter.max_failures - 1):
+            await client.post("/api/auth/login", json={"email": test_user.email, "password": "no"})
+        ok = await client.post(
+            "/api/auth/login", json={"email": test_user.email, "password": "secret"}
+        )
+        assert ok.status_code == 200
+        bad = await client.post(
+            "/api/auth/login", json={"email": test_user.email, "password": "no"}
+        )
+        assert bad.status_code == 401
+    finally:
+        login_limiter.reset()
+
+
+async def test_google_callback_refuses_unverified_email(client, test_user, monkeypatch):
+    """An unverified Google address must not be linked to an existing account by email."""
+    from types import SimpleNamespace
+
+    from app.routers import auth as auth_router
+
+    async def _token(_request):
+        return {"userinfo": {"sub": "g-123", "email": test_user.email, "email_verified": False}}
+
+    fake = SimpleNamespace(google=SimpleNamespace(authorize_access_token=_token))
+    monkeypatch.setattr(auth_router, "oauth_client", lambda: fake)
+    resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    assert resp.status_code == 400
+    assert "session" not in resp.cookies
+    assert test_user.google_sub is None

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.oauth import is_google_configured, oauth_client
+from app.core.rate_limit import login_limiter
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
 from app.dependencies import SESSION_COOKIE, get_current_user
@@ -51,6 +52,10 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     """Email/password login. Returns the user and sets a session cookie."""
+    if login_limiter.is_blocked(payload.email):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "Too many failed sign-ins. Try again later."
+        )
     user = await db.scalar(select(User).where(User.email == payload.email.lower()))
     # Email comparison is case-insensitive; store as-typed but match lower.
     if not user:
@@ -62,8 +67,10 @@ async def login(
         or not user.hashed_password
         or not verify_password(payload.password, user.hashed_password)
     ):
+        login_limiter.record_failure(payload.email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
 
+    login_limiter.reset(payload.email)
     token = create_access_token(user.id)
     _set_session_cookie(response, token)
     return LoginResponse(user=UserOut.model_validate(user))
@@ -155,10 +162,17 @@ async def google_callback(
     sub = userinfo.get("sub")
     email = userinfo.get("email")
     if not sub or not email:
-        logger.warning("Google userinfo missing sub or email: %s", userinfo)
+        logger.warning("Google userinfo missing sub or email (keys: %s)", sorted(userinfo))
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Google did not return an email; cannot sign in.",
+        )
+    # An unverified address must not be able to claim an existing account by email.
+    if userinfo.get("email_verified") not in (True, "true"):
+        logger.warning("Google sign-in refused: email not verified for sub %s", sub)
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Your Google email address is not verified; cannot sign in.",
         )
 
     # Upsert: prefer match-by-google_sub; fall back to match-by-email
