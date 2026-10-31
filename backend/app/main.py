@@ -139,6 +139,19 @@ except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule er
 # Path is configurable via TASKS_STATIC_DIR for dev experimentation.
 STATIC_DIR = Path(os.environ.get("TASKS_STATIC_DIR", "/app/static"))
 
+
+def static_file(static_dir: Path, full_path: str) -> Path | None:
+    """Return the file under static_dir that full_path names, or None.
+
+    The path arrives percent-decoded, so "..%2f" must not be allowed to escape the directory.
+    """
+    root = static_dir.resolve()
+    candidate = (root / full_path).resolve()
+    if candidate.is_relative_to(root) and candidate.is_file():
+        return candidate
+    return None
+
+
 if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
     assets_dir = STATIC_DIR / "assets"
     if assets_dir.exists():
@@ -150,8 +163,8 @@ if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"detail": "Not found"})
         # Serve a file directly if it exists in static (favicon, etc.), else index.html.
-        candidate = STATIC_DIR / full_path
-        if candidate.is_file():
+        candidate = static_file(STATIC_DIR, full_path)
+        if candidate:
             return FileResponse(candidate)
         return FileResponse(STATIC_DIR / "index.html")
 
