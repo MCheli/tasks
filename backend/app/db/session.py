@@ -22,9 +22,16 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency that yields a session and commits on success."""
+    """FastAPI dependency that yields a session and commits on success.
+
+    In the public demo every request transaction is READ ONLY (see app/demo.py).
+    """
     async with AsyncSessionLocal() as session:
         try:
+            if settings.DEMO_MODE:
+                from app.demo import make_read_only
+
+                await make_read_only(session)
             yield session
             await session.commit()
         except Exception:

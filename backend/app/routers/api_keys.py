@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db.session import get_db
 from app.dependencies import get_current_user
 from app.models.api_key import ApiKey
@@ -34,6 +35,8 @@ async def create_api_key(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ApiKeyCreated:
+    if settings.DEMO_MODE:  # the middleware refuses this first; keep the rule next to the code
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "API keys can't be created in the demo")
     raw = ApiKey.generate_key()
     record = ApiKey(
         user_id=user.id,
@@ -61,9 +64,7 @@ async def revoke_api_key(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    result = await db.execute(
-        select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == user.id)
-    )
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == user.id))
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "API key not found")

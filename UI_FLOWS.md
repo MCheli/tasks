@@ -26,15 +26,16 @@ All authenticated routes go through a route guard in `router/index.js` that chec
 
 ## Login (`LoginView`)
 
-**Purpose:** Let the user sign in. Two mechanisms: Google SSO button (disabled with a tooltip "Set up by admin" until configured) and email/password.
+**Purpose:** Let the owner sign in, and tell a stranger what the app is in five seconds.
 
 **Layout:**
-- Centered card, max-width 400px.
-- App title at top ("Tasks").
-- Email input, password input.
-- Primary button "Sign in."
-- Divider "or."
-- Secondary button "Sign in with Google" (disabled state visually distinct).
+- Desktop: split screen. Left (~55%) an always-dark hero: logo, a headline ("Plan in cycles. Carry forward what matters. Let go of the rest."), a one-sentence subhead, an illustrated collage of the app (`components/login/HeroVisual.vue`: a cycle list, the triage buttons, a history timeline, a completion ring; static SVG with made-up content, no API calls; floats gently, respects `prefers-reduced-motion`), and feature chips. Right: the sign-in panel, which follows the light/dark system theme.
+- Phone: the collage and chips are hidden so the sign-in button is on the first screen.
+- Sign-in panel, real deployment: "Continue with Google" when Google is configured, otherwise the email/password form. When `TASKS_DEMO_URL` is set, a "Just looking? Try the live demo" card follows.
+- Sign-in panel, public demo: a "Live demo" pill, two sentences about Claudius Banks (made up, the same person as in the Tallied demo, linked), and one "Enter the demo" button.
+- "Built by Mark Cheli" at the foot.
+
+**Public demo, after sign-in:** a static amber banner on every page ("Live demo. Claudius Banks is a made-up person and every task here is generated. Look around; nothing can be changed."). Controls that would write are disabled with the title "Not available in the demo: nothing can be changed or saved" (`v-demo-lock`). The Transition page stays usable as a preview: the forward/complete/cancel toggles work, only "Start New Cycle" is locked.
 
 **Interactions:**
 - Enter in password field submits the form.

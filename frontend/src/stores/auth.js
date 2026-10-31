@@ -21,6 +21,11 @@ export const useAuthStore = defineStore('auth', {
       const { data } = await authApi.login(email, password)
       this.user = data.user
     },
+    /** Public demo only: sign in as the made-up persona. */
+    async demoLogin() {
+      const { data } = await authApi.demoLogin()
+      this.user = data.user
+    },
     async logout() {
       try {
         await authApi.logout()

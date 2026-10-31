@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCyclesStore } from '@/stores/cycles'
+import { useAppConfigStore } from '@/stores/appConfig'
 import * as tasksApi from '@/api/tasks'
 import draggable from 'vuedraggable'
 
@@ -14,6 +15,7 @@ import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 const router = useRouter()
 const auth = useAuthStore()
 const cycles = useCyclesStore()
+const appConfig = useAppConfigStore()
 const taskInputRef = ref(null)
 
 onMounted(() => cycles.refresh())
@@ -146,6 +148,7 @@ const cycleStartedRel = computed(() => {
           v-model="cycles.tasks.open"
           item-key="id"
           handle=".drag-handle"
+          :disabled="appConfig.demo"
           ghost-class="bg-accent-50"
           drag-class="opacity-90"
           :animation="150"

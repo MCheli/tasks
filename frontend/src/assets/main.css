@@ -23,6 +23,13 @@
   }
 }
 
+@layer components {
+  /* v-demo-lock: a control that would change data, in the public demo. */
+  .demo-locked {
+    @apply opacity-40 cursor-not-allowed;
+  }
+}
+
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.api_key import ApiKey
@@ -59,5 +60,6 @@ async def _user_from_api_key(db: AsyncSession, raw: str) -> User:
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid API key")
 
-    record.last_used_at = datetime.now(timezone.utc)
+    if not settings.DEMO_MODE:  # the demo's sessions are read-only
+        record.last_used_at = datetime.now(UTC)
     return user

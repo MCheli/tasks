@@ -46,6 +46,25 @@ Return the currently authenticated user.
 
 **Response 401** if no valid cookie.
 
+### `POST /api/auth/demo`
+
+Public demo only (`TASKS_DEMO_MODE=true`). Signs in as the demo persona (`TASKS_DEMO_USER_EMAIL`, default `claudius@tasks.dev`) with no password and sets the `session` cookie. Response as for `/login`.
+
+- `404` outside demo mode.
+- `503` if the persona isn't in the database yet (the nightly reseed is running).
+
+### `GET /api/auth/config`
+
+What the login page needs to know about this deployment. No auth.
+
+```json
+{ "google_configured": true, "demo_mode": false, "demo_url": "https://tasks-demo.markcheli.com" }
+```
+
+### Demo mode
+
+In demo mode every `POST`/`PUT`/`PATCH`/`DELETE` except `POST /api/auth/demo` and `POST /api/auth/logout` answers `403 {"detail": "...", "demo": true}`, every response carries `X-Robots-Tag: noindex, nofollow`, and `GET /api/cycles/current` answers `503` rather than creating a missing cycle. See `backend/app/demo.py`.
+
 ### `GET /api/auth/google/login`
 *(Scaffolded, not yet wired to real Google credentials.)* Redirects to Google consent screen.
 

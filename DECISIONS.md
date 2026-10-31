@@ -77,6 +77,26 @@ Format:
 **Rationale:** Mark wants Google SSO as the only signup path for real users. Test user (1st) is seeded from env vars. Test isolation requires a 2nd user inserted at the DB layer in the test fixture.
 **Conflicts with:** none.
 
+## 2026-10-31 — Public demo is a second deployment
+**Decision:** The demo (tasks-demo.markcheli.com) is the same image with `TASKS_DEMO_MODE=true` on its own database, not a path or a tenant in the real one. Writes are refused by middleware, by READ ONLY transactions, and startup refuses real users or Google/password secrets.
+**Rationale:** A demo tenant inside the real database is one isolation bug from publishing real data. Follows the Tallied demo playbook.
+**Conflicts with:** none.
+
+## 2026-10-31 — Transition page stays live in the demo
+**Decision:** In demo mode the Transition page opens and its forward/complete/cancel toggles work; only "Start New Cycle" is locked. Every other write control is disabled, not hidden.
+**Rationale:** The triage is the app's signature flow and the toggles are client-side state that saves nothing.
+**Conflicts with:** the playbook's "lock the button that opens a form" — this form saves nothing until its final button.
+
+## 2026-10-31 — Vitest added for the demo lock directive
+**Decision:** Add Vitest + @vue/test-utils + jsdom (`npm test`, run in CI) for `v-demo-lock`. Supersedes "Vitest skipped for v1".
+**Rationale:** The directive's behavior (disable, explain, swallow clicks) is easiest to pin down in a unit test.
+**Conflicts with:** "Vitest skipped for v1".
+
+## 2026-10-31 — History page widened
+**Decision:** History uses `max-w-4xl` instead of `max-w-3xl`.
+**Rationale:** The Gantt chart is a fixed 800px; at `max-w-3xl` the current cycle sat behind a horizontal scroll on desktop.
+**Conflicts with:** none.
+
 ## 2026-04-19 — Vitest skipped for v1
 **Decision:** Don't add Vitest. Frontend tests rely on E2E (Playwright) only.
 **Rationale:** Spec says vitest unit tests are optional. The composables and stores in this app are thin enough that E2E coverage is sufficient.

@@ -33,7 +33,7 @@ watch(() => cycles.activeCategory, load)
 <template>
   <div class="min-h-screen bg-gray-50">
     <header class="sticky top-0 z-10 bg-white border-b border-gray-200">
-      <div class="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
+      <div class="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
         <button
           class="text-sm text-gray-500 hover:text-gray-700"
           @click="router.push('/cycle')"
@@ -50,7 +50,7 @@ watch(() => cycles.activeCategory, load)
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto p-4">
+    <main class="max-w-4xl mx-auto p-4">
       <div
         v-if="loading"
         class="text-sm text-gray-400 text-center py-12"

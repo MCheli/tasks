@@ -189,6 +189,16 @@ Browser
 - **JWT contents:** `{sub: user_id, exp: now+7d, iat: now}`. HS256 signed with `JWT_SECRET`.
 - **Dependency:** `get_current_user` reads the cookie, decodes, loads the user from DB, raises 401 if any step fails.
 
+## Public Demo Mode
+
+`TASKS_DEMO_MODE=true` turns a deployment into the public, read-only demo (tasks-demo.markcheli.com): the same image, its own Postgres, its own secrets, holding only the made-up persona Claudius Banks (`claudius@tasks.dev`). See `backend/app/demo.py`.
+
+- **Seed:** the entrypoint runs `python -m app.services.demo_seed --reset` on every start; the server restarts the container nightly. The seed is one simulation laid out backwards from the moment it runs (weekly Personal cycles, two-week Professional sprints, tasks that are forwarded, checked off or dropped exactly as the transition would record them, chores and calendar items that follow the season). It refuses to run outside demo mode or against a database holding any non-persona user.
+- **Read-only, three layers:** a middleware refuses every write except demo sign-in and sign-out; request sessions run `SET TRANSACTION READ ONLY`; startup refuses Google/password-login settings and any database with a non-`@tasks.dev` user.
+- **No outbound calls:** Google OAuth is the only integration and is refused in demo mode.
+- **Frontend:** `stores/appConfig.js` loads `/api/auth/config` once; `directives/demoLock.js` disables write controls; `components/DemoBanner.vue` names the persona.
+- The real deployment sets `TASKS_DEMO_URL` so its login page links to the demo.
+
 ## Data Scoping
 
 Every request that touches user data MUST pass through `get_current_user`, and every query MUST filter by `user_id`. Enforce this in the service layer, not the router. A helper:

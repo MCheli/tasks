@@ -1,9 +1,11 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import { useCyclesStore } from '@/stores/cycles'
+import { useAppConfigStore } from '@/stores/appConfig'
 import * as tasksApi from '@/api/tasks'
 
 const cycles = useCyclesStore()
+const appConfig = useAppConfigStore()
 const title = ref('')
 const notes = ref('')
 const expanded = ref(false)
@@ -70,8 +72,9 @@ defineExpose({ focus: () => titleEl.value?.focus() })
     <input
       ref="titleEl"
       v-model="title"
+      v-demo-lock
       type="text"
-      placeholder="Add a task…"
+      :placeholder="appConfig.demo ? 'Adding tasks isn\'t available in the demo' : 'Add a task…'"
       class="w-full bg-transparent border-none focus:outline-none text-sm placeholder-gray-400"
       @focus="expanded = true"
       @keydown="onTitleKey"

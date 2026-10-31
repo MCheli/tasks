@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.cycle import Cycle
 from app.models.task import Task
 from app.models.user import User
@@ -52,6 +53,12 @@ async def get_or_create_current_cycle(db: AsyncSession, user: User, category: st
     )
     if existing:
         return existing
+    if settings.DEMO_MODE:
+        # The seed always creates both active cycles; never write from a GET in the demo.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "The demo is being rebuilt. Try again in a minute.",
+        )
 
     cycle = Cycle(user_id=user.id, category=category)
     db.add(cycle)

@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import App from './App.vue'
 import { routes, installGuards } from './router'
+import { vDemoLock } from './directives/demoLock'
 import './assets/main.css'
 
 const app = createApp(App)
@@ -13,5 +14,6 @@ const router = createRouter({ history: createWebHistory(), routes })
 installGuards(router)
 
 app.use(pinia)
+app.directive('demo-lock', vDemoLock)
 app.use(router)
 app.mount('#app')

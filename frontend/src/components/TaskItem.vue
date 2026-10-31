@@ -115,6 +115,7 @@ function fmtDate(iso) {
     <!-- Drag handle — visible inside the row (always shown for open tasks). -->
     <span
       v-if="task.status === 'open' && !readonly"
+      v-demo-lock
       class="drag-handle flex-shrink-0 self-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none leading-none"
       title="Drag to reorder"
       aria-label="Drag to reorder"
@@ -122,6 +123,7 @@ function fmtDate(iso) {
 
     <!-- Status icon / checkbox -->
     <button
+      v-demo-lock
       class="mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs"
       :class="{
         'bg-green-500 text-white': task.status === 'completed',
@@ -207,6 +209,7 @@ function fmtDate(iso) {
         >
           <template v-if="!editing">
             <button
+              v-demo-lock
               class="text-xs px-2 py-1 text-accent-600 hover:bg-accent-50 rounded"
               @click="startEdit"
             >
@@ -214,6 +217,7 @@ function fmtDate(iso) {
             </button>
             <button
               v-if="task.status === 'open'"
+              v-demo-lock
               class="text-xs px-2 py-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
               @click="cancelTask"
             >
@@ -221,12 +225,14 @@ function fmtDate(iso) {
             </button>
             <button
               v-if="task.status === 'canceled' || task.status === 'completed'"
+              v-demo-lock
               class="text-xs px-2 py-1 text-gray-500 hover:bg-gray-100 rounded"
               @click="reopenTask"
             >
               Reopen
             </button>
             <button
+              v-demo-lock
               class="ml-auto text-xs px-2 py-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
               @click="deleteTask"
             >

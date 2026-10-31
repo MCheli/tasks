@@ -55,6 +55,9 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_GOOGLE_CLIENT_SECRET` | yes (prod) | Paired Google OAuth secret. | `GOCSPX-...` |
 | `TASKS_GOOGLE_REDIRECT_URI` | yes (prod) | Must match exactly one of the redirect URIs registered in Google Cloud Console. | `https://tasks.markcheli.com/api/auth/google/callback` |
 | `TASKS_ALLOWED_ORIGINS` | yes | Comma-separated list. Production should be the exact prod URL. | `https://tasks.markcheli.com` |
+| `TASKS_DEMO_URL` | no | Real deployment: the public demo's URL; the login page shows a "Try the live demo" card. | `https://tasks-demo.markcheli.com` |
+| `TASKS_DEMO_MODE` | demo only | `true` makes this deployment the read-only public demo. Never set on the real one. | `true` |
+| `TASKS_DEMO_USER_EMAIL` | no | Demo persona. Must end in `@tasks.dev`. Default `claudius@tasks.dev`. | _(default)_ |
 | `TASKS_STATIC_DIR` | no | Override the static-files location (defaults to `/app/static`). | _(empty)_ |
 
 **Secrets:** `TASKS_JWT_SECRET`, `TASKS_DATABASE_URL`, `TASKS_GOOGLE_CLIENT_SECRET` (and `TASKS_TEST_USER_PASSWORD` if used). Pull from the deployment agent's secret manager. Never commit to a repo.
@@ -183,6 +186,22 @@ docker compose up -d tasks
 ```
 
 Migrations run on each startup. Downtime ~5 seconds.
+
+## Public demo (tasks-demo.markcheli.com)
+
+The same image in demo mode, on its own database holding only the Claudius Banks seed. It must never share the real database, secrets or `.env`: startup refuses Google and test-user settings and any database with a user outside `@tasks.dev`.
+
+| Container | Role |
+|---|---|
+| `tasks-demo-db` | `postgres:16-alpine`, volume `tasks_demo_db_data`, on the `tasks-demo` network (`internal: true`), no published port |
+| `tasks-demo` | `ghcr.io/mcheli/tasks:latest` with `TASKS_DEMO_MODE=true`; on `tasks-demo` and `infrastructure` (for NGINX). The entrypoint runs migrations, then `python -m app.services.demo_seed --reset`, then the server. |
+
+- **Environment** is listed in the compose file, never `env_file: .env`: `TASKS_DATABASE_URL` (the demo DB), `TASKS_JWT_SECRET` and `TASKS_API_KEY_PEPPER` (its own, from `TASKS_DEMO_*` in the server `.env`), `TASKS_ENV=production`, `TASKS_COOKIE_SECURE=true`, `TASKS_ALLOWED_ORIGINS=https://tasks-demo.markcheli.com`, `TASKS_DEMO_MODE=true`.
+- **Fresh data:** the server crontab restarts `tasks-demo` at 08:30 UTC daily (Tallied's demo restarts at 08:00); the restart reseeds, and the site answers 502 for the few seconds that takes.
+- **Real deployment:** `TASKS_DEMO_URL=https://tasks-demo.markcheli.com` on `tasks` shows the demo card on its login page.
+- **NGINX:** a server block for `tasks-demo.markcheli.com` proxying to `tasks-demo:8000` with the wildcard certificate, plus the host in the port-80 redirect list. **DNS:** a proxied A record like `tasks`'s. (A flat name because the certificate covers one level.)
+- **Deploy:** `~/83rr-poweredge/scripts/tasks-deploy.sh` pulls and restarts `tasks` and `tasks-demo` and checks both.
+- **Check:** `curl -s https://tasks-demo.markcheli.com/api/auth/config` shows `"demo_mode":true`; a POST to `/api/api-keys` answers 403; `cd e2e && BASE=https://tasks-demo.markcheli.com node scripts/demo-tour.mjs` reports no problems.
 
 ## Rollback
 

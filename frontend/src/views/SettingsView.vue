@@ -202,6 +202,7 @@ onMounted(loadKeys)
               </p>
             </div>
             <button
+              v-demo-lock
               class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors"
               @click="showCreate = !showCreate"
             >
@@ -279,6 +280,7 @@ onMounted(loadKeys)
               </div>
               <button
                 v-if="k.is_active"
+                v-demo-lock
                 class="text-xs text-red-500 hover:text-red-600 font-medium ml-3"
                 @click="revoke(k.id)"
               >

@@ -52,6 +52,10 @@ The Tallied repo at `~/repos/tallied/` is a structural reference for FastAPI + P
 - Native mobile app — web is styled mobile-first and that is sufficient.
 - Notifications / reminders — out of scope.
 
+## Public Demo
+
+A read-only demo runs at `https://tasks-demo.markcheli.com`: the same image in demo mode (`TASKS_DEMO_MODE=true`) on its own database, holding the made-up task lists of Claudius Banks (the same persona as the Tallied demo). See `ARCHITECTURE.md` → Public Demo Mode and `DEPLOYMENT.md` → Public demo.
+
 ## Production Domain
 
 Deployment target subdomain: `tasks.markcheli.com`. The deployment agent handles NGINX, Let's Encrypt, and Cloudflare wiring — this repo just needs to produce a working container image and a filled-in `DEPLOYMENT.md`.

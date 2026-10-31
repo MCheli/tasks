@@ -1,5 +1,6 @@
 // Lazy-loaded routes; views are added in later phases.
 import { useAuthStore } from '@/stores/auth'
+import { useAppConfigStore } from '@/stores/appConfig'
 
 export const routes = [
   {
@@ -41,7 +42,8 @@ export const routes = [
 export function installGuards(router) {
   router.beforeEach(async (to) => {
     const auth = useAuthStore()
-    if (!auth.initialized) await auth.init()
+    const appConfig = useAppConfigStore()
+    await Promise.all([auth.initialized ? null : auth.init(), appConfig.load()])
     if (to.meta.public) return true
     if (!auth.user) return { name: 'login', query: { next: to.fullPath } }
     return true

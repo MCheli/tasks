@@ -387,6 +387,18 @@ pytest                  # all
 pytest tests/unit       # just units
 pytest -k "transition"  # name match
 
+# Frontend unit tests (Vitest: the demo lock directive)
+cd frontend && npm test
+
+# Public demo: backend/tests/api/test_demo_mode.py enumerates every write route and proves
+# each is refused in demo mode except demo sign-in/sign-out; tests/unit/test_demo_seed.py runs
+# the seed for every month and weekday and checks it is one coherent simulation.
+
+# Demo tour in headless Chrome (needs a demo backend + frontend, or the live URL): every route,
+# page/console errors, API responses >= 400, writes from the page must 403, full-height screenshots
+cd e2e && BASE=https://tasks-demo.markcheli.com OUT=/tmp/tour node scripts/demo-tour.mjs
+BASE=https://tasks.markcheli.com MODE=real OUT=/tmp/tour-real node scripts/demo-tour.mjs
+
 # E2E (requires app running at localhost:8000)
 cd e2e
 npx playwright install chromium  # first time only

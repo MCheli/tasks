@@ -2,10 +2,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCyclesStore } from '@/stores/cycles'
+import { useAppConfigStore } from '@/stores/appConfig'
 import * as cyclesApi from '@/api/cycles'
 
 const router = useRouter()
 const cycles = useCyclesStore()
+const appConfig = useAppConfigStore()
 const submitting = ref(false)
 const error = ref('')
 
@@ -96,6 +98,13 @@ function cancel() {
     </header>
 
     <main class="max-w-2xl mx-auto p-4 pb-32">
+      <p
+        v-if="appConfig.demo"
+        class="mb-3 text-xs text-gray-500"
+      >
+        Tap a task to switch between forward, complete and cancel. In the demo this is a
+        preview: starting the new cycle is turned off.
+      </p>
       <div
         v-if="!cycles.tasks.open.length"
         class="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500"
@@ -149,6 +158,7 @@ function cancel() {
     <div class="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:right-6 sm:left-auto safe-bottom">
       <div class="sm:hidden bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-6 px-4 pb-4">
         <button
+          v-demo-lock
           class="w-full bg-accent-500 text-white px-6 py-3 rounded-lg shadow-md font-medium hover:bg-accent-600 disabled:opacity-50"
           :disabled="submitting"
           @click="startCycle"
@@ -157,6 +167,7 @@ function cancel() {
         </button>
       </div>
       <button
+        v-demo-lock
         class="hidden sm:block bg-accent-500 text-white px-6 py-3 rounded-full shadow-lg font-medium hover:bg-accent-600 disabled:opacity-50"
         :disabled="submitting"
         @click="startCycle"

@@ -60,11 +60,17 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str | None = None
     GOOGLE_REDIRECT_URI: str | None = None
 
+    # Public demo (see app/demo.py). DEMO_MODE turns a deployment into the read-only demo;
+    # DEMO_URL on the real deployment makes its login page link to the demo.
+    DEMO_MODE: bool = False
+    DEMO_URL: str | None = None
+    DEMO_USER_EMAIL: str = "claudius@tasks.dev"
+
     # CORS — comma-separated string in env, parsed via property below.
     # Stored as raw str so pydantic-settings doesn't try to JSON-decode it.
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:8000"
 
-    @field_validator("COOKIE_DOMAIN", mode="before")
+    @field_validator("COOKIE_DOMAIN", "DEMO_URL", mode="before")
     @classmethod
     def _empty_to_none(cls, v):
         if v == "" or v is None:

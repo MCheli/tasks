@@ -29,5 +29,14 @@ cd /app/backend
 echo "[entrypoint] running alembic upgrade head"
 alembic upgrade head
 
+# Public demo: rebuild Claudius Banks's data on every start (the server restarts it nightly).
+# The seed refuses to run against a database that holds any real user.
+case "$TASKS_DEMO_MODE" in
+  1|true|True|TRUE|yes)
+    echo "[entrypoint] demo mode: reseeding the demo persona"
+    python -m app.services.demo_seed --reset
+    ;;
+esac
+
 echo "[entrypoint] starting app: $*"
 exec "$@"

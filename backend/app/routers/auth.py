@@ -69,6 +69,32 @@ async def login(
     return LoginResponse(user=UserOut.model_validate(user))
 
 
+@router.post("/demo", response_model=LoginResponse)
+async def demo_login(response: Response, db: AsyncSession = Depends(get_db)) -> LoginResponse:
+    """Public demo only: sign in as the demo persona, no password. 404 everywhere else."""
+    if not settings.DEMO_MODE:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+    user = await db.scalar(select(User).where(User.email == settings.DEMO_USER_EMAIL))
+    if not user:
+        # The nightly restart reseeds before serving; this only shows mid-rebuild.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "The demo is being rebuilt. Try again in a minute.",
+        )
+    _set_session_cookie(response, create_access_token(user.id))
+    return LoginResponse(user=UserOut.model_validate(user))
+
+
+@router.get("/config")
+async def auth_config() -> dict:
+    """What the login page needs to know about this deployment."""
+    return {
+        "google_configured": is_google_configured(),
+        "demo_mode": settings.DEMO_MODE,
+        "demo_url": settings.DEMO_URL,
+    }
+
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response) -> None:
     _clear_session_cookie(response)

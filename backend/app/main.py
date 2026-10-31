@@ -15,6 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.db.session import engine
+from app.demo import DemoReadOnlyMiddleware, NoIndexMiddleware
 from app.routers import health
 
 logger = logging.getLogger("tasks")
@@ -24,8 +25,22 @@ logging.basicConfig(
 )
 
 
+async def _check_demo() -> None:
+    """Demo mode fails closed: wrong settings or a database with real users stop startup."""
+    from app.db.session import AsyncSessionLocal
+    from app.demo import check_demo_database, check_demo_settings
+
+    check_demo_settings()
+    async with AsyncSessionLocal() as db:
+        await check_demo_database(db)
+    logger.info("Demo mode: read-only, signed-in visitors see %s.", settings.DEMO_USER_EMAIL)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if settings.DEMO_MODE:
+        await _check_demo()  # raises → the server refuses to start
+
     # Startup: seed test user (only does work if TASKS_TEST_USER_EMAIL/PASSWORD set
     # AND the User model exists yet). Imported lazily so Phase 0 boots without models.
     try:
@@ -66,6 +81,12 @@ app.add_middleware(
     https_only=settings.COOKIE_SECURE,
     same_site="lax",
 )
+
+
+# Public demo: refuse writes, keep it out of search engines. Both are no-ops unless
+# TASKS_DEMO_MODE is set (see app/demo.py).
+app.add_middleware(DemoReadOnlyMiddleware)
+app.add_middleware(NoIndexMiddleware)
 
 
 @app.exception_handler(Exception)
