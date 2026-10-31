@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
 # ---- Stage 1: Build the Vue frontend ----
-FROM node:20-alpine AS frontend-build
+FROM node:24.22.1-alpine AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install --include=dev --no-audit --no-fund
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
 # ---- Stage 2: Backend runtime ----
-FROM python:3.11-slim AS runtime
+FROM python:3.11.18-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
