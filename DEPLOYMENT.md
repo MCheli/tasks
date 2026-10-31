@@ -44,7 +44,8 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_ENV` | yes | `production` to disable docs and require secure cookies. | `production` |
 | `TASKS_ENABLE_DOCS` | no | `false` hides `/api/docs`. Default `true`. | `false` |
 | `TASKS_DATABASE_URL` | yes | Async Postgres URL. Must use `postgresql+asyncpg://`. | `postgresql+asyncpg://cycle_todo:SECRET@db.internal:5432/cycle_todo` |
-| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. | (64 hex chars) |
+| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. With `TASKS_ENV=production` the app refuses to start on the in-repo default. | (64 hex chars) |
+| `TASKS_API_KEY_PEPPER` | yes (prod) | HMAC pepper for stored API key hashes. `openssl rand -hex 32`. Changing it invalidates every existing API key. Production logs a warning while it is the default. | (64 hex chars) |
 | `TASKS_JWT_ALGORITHM` | no | Default `HS256`. Leave as-is. | `HS256` |
 | `TASKS_JWT_EXPIRE_DAYS` | no | Session lifetime. Default `7`. | `7` |
 | `TASKS_COOKIE_SECURE` | yes (prod) | **Must be `true` behind HTTPS.** | `true` |
@@ -60,7 +61,7 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_DEMO_USER_EMAIL` | no | Demo persona. Must end in `@tasks.dev`. Default `claudius@tasks.dev`. | _(default)_ |
 | `TASKS_STATIC_DIR` | no | Override the static-files location (defaults to `/app/static`). | _(empty)_ |
 
-**Secrets:** `TASKS_JWT_SECRET`, `TASKS_DATABASE_URL`, `TASKS_GOOGLE_CLIENT_SECRET` (and `TASKS_TEST_USER_PASSWORD` if used). Pull from the deployment agent's secret manager. Never commit to a repo.
+**Secrets:** `TASKS_JWT_SECRET`, `TASKS_API_KEY_PEPPER`, `TASKS_DATABASE_URL`, `TASKS_GOOGLE_CLIENT_SECRET` (and `TASKS_TEST_USER_PASSWORD` if used). Pull from the deployment agent's secret manager. Never commit to a repo.
 
 ### Sample env file
 
@@ -70,6 +71,7 @@ TASKS_ENV=production
 TASKS_ENABLE_DOCS=false
 TASKS_DATABASE_URL=postgresql+asyncpg://cycle_todo:DB_PASSWORD@db.internal:5432/cycle_todo
 TASKS_JWT_SECRET=<openssl rand -hex 32>
+TASKS_API_KEY_PEPPER=<openssl rand -hex 32>
 TASKS_COOKIE_SECURE=true
 TASKS_ALLOWED_ORIGINS=https://tasks.markcheli.com
 
