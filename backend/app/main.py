@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import settings
+from app.config import check_production_settings, settings
 from app.db.session import engine
 from app.demo import DemoReadOnlyMiddleware, NoIndexMiddleware
 from app.routers import health
@@ -38,6 +38,8 @@ async def _check_demo() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    for warning in check_production_settings(settings):  # raises on a default JWT secret
+        logger.warning("Insecure production setting: %s", warning)
     if settings.DEMO_MODE:
         await _check_demo()  # raises → the server refuses to start
 
