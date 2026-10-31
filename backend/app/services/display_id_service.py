@@ -7,15 +7,13 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-_UPSERT_RETURNING = text(
-    """
+_UPSERT_RETURNING = text("""
     INSERT INTO display_id_sequences (user_id, next_value)
     VALUES (:user_id, 2)
     ON CONFLICT (user_id) DO UPDATE
       SET next_value = display_id_sequences.next_value + 1
     RETURNING next_value - 1 AS allocated
-"""
-)
+""")
 
 
 async def allocate_display_id(db: AsyncSession, user_id: UUID) -> int:
