@@ -31,7 +31,6 @@ DEV_JWT_SECRET = "dev-only-not-secret-change-me"
 DEV_API_KEY_PEPPER = "dev-only-api-key-pepper-change-me"
 DEV_DB_PASSWORD = "changeme"
 _PLACEHOLDER_SECRETS = {DEV_JWT_SECRET, "CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_HEX_32", ""}
-MIN_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -119,8 +118,8 @@ def check_production_settings(s: Settings) -> tuple[list[str], list[str]]:
             "TASKS_ENV=production with the default TASKS_JWT_SECRET: anyone can forge sessions. "
             "Set it to `openssl rand -hex 32`."
         )
-    elif len(s.JWT_SECRET) < MIN_SECRET_LENGTH:
-        errors.append(f"TASKS_JWT_SECRET is shorter than {MIN_SECRET_LENGTH} characters.")
+    elif len(s.JWT_SECRET) < 32:
+        errors.append("TASKS_JWT_SECRET is shorter than 32 characters.")
     if s.API_KEY_PEPPER in (DEV_API_KEY_PEPPER, ""):
         errors.append(
             "TASKS_API_KEY_PEPPER is the public default. Setting it invalidates existing API keys."
