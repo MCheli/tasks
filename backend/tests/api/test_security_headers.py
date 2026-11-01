@@ -15,6 +15,13 @@ async def test_api_responses_carry_csp(client):
     assert "frame-ancestors 'none'" in CONTENT_SECURITY_POLICY
 
 
+def test_csp_allows_cloudflare_web_analytics():
+    # Cloudflare injects its analytics beacon at the edge; it loads and reports from these hosts only.
+    directives = dict(d.split(" ", 1) for d in CONTENT_SECURITY_POLICY.split("; "))
+    assert directives["script-src"] == "'self' https://static.cloudflareinsights.com"
+    assert directives["connect-src"] == "'self' https://cloudflareinsights.com"
+
+
 async def test_swagger_ui_has_no_csp(client):
     # Swagger UI pulls its assets from a CDN; a same-origin CSP would blank the page.
     resp = await client.get("/api/docs")
