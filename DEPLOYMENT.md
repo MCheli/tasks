@@ -41,13 +41,15 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 
 | Variable | Required | Description | Example |
 |---|---|---|---|
-| `TASKS_ENV` | yes | `production` to disable docs and require secure cookies. | `production` |
-| `TASKS_ENABLE_DOCS` | no | `false` hides `/api/docs`. Default `true`. | `false` |
+| `TASKS_ENV` | yes | `production` turns off `/api/docs` by default and refuses to start with insecure secrets (see below). | `production` |
+| `TASKS_ENABLE_DOCS` | no | Unset: `/api/docs` is on, except in production. `true`/`false` forces it. | `false` |
 | `TASKS_DATABASE_URL` | yes | Async Postgres URL. Must use `postgresql+asyncpg://`. | `postgresql+asyncpg://cycle_todo:SECRET@db.internal:5432/cycle_todo` |
-| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. With `TASKS_ENV=production` the app logs an ERROR at startup on the in-repo default (fail-closed is planned once prod is confirmed). | (64 hex chars) |
-| `TASKS_API_KEY_PEPPER` | yes (prod) | HMAC pepper for stored API key hashes. `openssl rand -hex 32`. Changing it invalidates every existing API key. Production logs a warning while it is the default. | (64 hex chars) |
+| `TASKS_JWT_SECRET` | yes | 32+ byte random hex. Generate: `openssl rand -hex 32`. With `TASKS_ENV=production` the app refuses to start on the in-repo default or anything shorter than 32 characters. | (64 hex chars) |
+| `TASKS_API_KEY_PEPPER` | yes (prod) | HMAC pepper for stored API key hashes. `openssl rand -hex 32`. Changing it invalidates every existing API key. Production refuses to start while it is the default or empty. | (64 hex chars) |
 | `TASKS_JWT_ALGORITHM` | no | Default `HS256`. Leave as-is. | `HS256` |
-| `TASKS_JWT_EXPIRE_DAYS` | no | Session lifetime. Default `7`. | `7` |
+| `TASKS_JWT_EXPIRE_DAYS` | no | A session token's lifetime from when it was last issued. Default `7`. | `7` |
+| `TASKS_JWT_REFRESH_AFTER_HOURS` | no | Signed-in requests re-issue the cookie once the token is this old. Default `12`. | `12` |
+| `TASKS_JWT_MAX_SESSION_DAYS` | no | Hard limit from sign-in; refreshes never extend past it. Default `7`, which with the default expiry keeps today's fixed 7-day session. Lower `TASKS_JWT_EXPIRE_DAYS` (e.g. `1`) for a short idle timeout that active users never notice. | `7` |
 | `TASKS_COOKIE_SECURE` | yes (prod) | **Must be `true` behind HTTPS.** | `true` |
 | `TASKS_COOKIE_DOMAIN` | no | Leave blank unless cross-subdomain SSO is wanted. | _(empty)_ |
 | `TASKS_TEST_USER_EMAIL` | no (fallback) | Optional fallback login identity. Seeded on first startup if both are set. The password form is hidden in the UI whenever Google OAuth is configured, so this only matters when Google is NOT set. | `claudius@markcheli.com` |
@@ -60,6 +62,8 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_DEMO_MODE` | demo only | `true` makes this deployment the read-only public demo. Never set on the real one. | `true` |
 | `TASKS_DEMO_USER_EMAIL` | no | Demo persona. Must end in `@tasks.dev`. Default `claudius@tasks.dev`. | _(default)_ |
 | `TASKS_STATIC_DIR` | no | Override the static-files location (defaults to `/app/static`). | _(empty)_ |
+
+**Startup checks:** with `TASKS_ENV=production` the app refuses to start (logs `INSECURE PRODUCTION SETTING: ...`, then exits) when `TASKS_JWT_SECRET` is a default/placeholder or shorter than 32 characters, `TASKS_API_KEY_PEPPER` is the default or empty, or `TASKS_DATABASE_URL` uses the default `changeme` password. `TASKS_COOKIE_SECURE=false` only logs a warning.
 
 **Secrets:** `TASKS_JWT_SECRET`, `TASKS_API_KEY_PEPPER`, `TASKS_DATABASE_URL`, `TASKS_GOOGLE_CLIENT_SECRET` (and `TASKS_TEST_USER_PASSWORD` if used). Pull from the deployment agent's secret manager. Never commit to a repo.
 
@@ -229,6 +233,8 @@ If a rollback would require a schema downgrade, run Alembic manually first. (App
 - **Login UI behavior is reactive:** when both `TASKS_GOOGLE_CLIENT_ID` and `TASKS_GOOGLE_CLIENT_SECRET` are set, the login page shows ONLY a "Continue with Google" button and the password form is hidden. If those vars are missing, the page falls back to the email/password form and the Google routes return `503`. Restarting the container after toggling the env is required for the change to take effect.
 - **Two cookies are set:** `session` (httpOnly JWT — the actual auth state) and `tasks_oauth_state` (Authlib's signed cookie for CSRF state during the Google round-trip; emptied after callback). Both use SameSite=Lax. NGINX must forward Set-Cookie verbatim (default behavior — no special config needed).
 - **JWT secret is reused** for the OAuth state cookie's signing key. Rotating `TASKS_JWT_SECRET` invalidates both: existing user sessions and any in-flight OAuth redirects (those will fail their state check). Schedule rotation accordingly.
+- **Sessions can't be revoked server-side.** Logout clears the cookie, but a copied token stays valid until it expires (no token store; adding one needs a migration). Rotating `TASKS_JWT_SECRET` signs everyone out.
+- **Security headers:** the app sends `Content-Security-Policy` (same-origin scripts only; none on `/api/docs`, which loads Swagger UI from a CDN) and `Permissions-Policy`. NGINX adds HSTS, `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`, so the app doesn't repeat them. Task notes are capped at 20,000 characters.
 - bcrypt is pinned to `>=4.0,<4.1` because passlib 1.7.x reads `bcrypt.__about__` which 4.1+ removed. Don't bump bcrypt without checking passlib first.
 - The Google "Test user" list in Google Cloud Console gates who can actually sign in. Until the OAuth app is "Verified" by Google (overkill for this), only listed test users (Mark's email) can authenticate. To add another user later, add them to that list in the Cloud Console.
 

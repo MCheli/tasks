@@ -254,7 +254,7 @@ docker logs -f tasks-prod
 ```bash
 git status                             # check what's uncommitted
 git log --oneline                      # see history (9 phase commits + 1 docs)
-git push                               # push to origin/main → triggers release.yml
+git push                               # push to origin/main → CI, then release.yml if green
 ```
 
 CI runs on every PR and push to main:
@@ -262,7 +262,7 @@ CI runs on every PR and push to main:
 - `frontend` job — npm ci, lint (warnings non-blocking), build
 - `docker` job — full multi-stage build (no push)
 
-Release workflow runs on push to main and on `v*` tags:
+Release workflow (`release.yml`, called by CI's `release` job) runs on push to main and on `v*` tags, only after all three CI jobs pass:
 - Builds and pushes `ghcr.io/mcheli/tasks` with `:latest`, `:{sha}`, and `:v{semver}` tags
 
 ### Ports / hosts (local)

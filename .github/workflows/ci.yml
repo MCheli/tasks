@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -77,3 +78,12 @@ jobs:
           tags: ghcr.io/mcheli/tasks:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Publish only after every check above passed, and never for pull requests.
+  release:
+    needs: [backend, frontend, docker]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/release.yml
