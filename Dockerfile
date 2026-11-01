@@ -15,8 +15,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# System deps for asyncpg, bcrypt, healthcheck.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# System deps for asyncpg, bcrypt, healthcheck. `upgrade` takes Debian security fixes newer than the base tag.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
       build-essential libpq-dev curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

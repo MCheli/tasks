@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  # Weekly rebuild on a freshly pulled base so OS security fixes land without a code change.
+  # Friday 08:00 UTC, so Saturday's security sweep sees the result.
+  schedule:
+    - cron: '0 8 * * 5'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -76,14 +81,19 @@ jobs:
           context: .
           push: false
           tags: ghcr.io/mcheli/tasks:ci-${{ github.sha }}
+          pull: ${{ github.event_name == 'schedule' }}
+          no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   # Publish only after every check above passed, and never for pull requests.
+  # Scheduled and manual runs publish only from main.
   release:
     needs: [backend, frontend, docker]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')
     permissions:
       contents: read
       packages: write
     uses: ./.github/workflows/release.yml
+    with:
+      fresh-base: ${{ github.event_name == 'schedule' }}

@@ -1,9 +1,15 @@
 name: Release
 
-# Called by CI (ci.yml) only after backend, frontend and docker pass on a push to main or a v* tag,
-# so an image is never published from a red commit. Watchtower deploys :latest to production.
+# Called by CI (ci.yml) only after backend, frontend and docker pass on a push to main, a v* tag
+# or the weekly scheduled rebuild, so an image is never published from a red commit.
+# Watchtower deploys :latest to production.
 on:
   workflow_call:
+    inputs:
+      fresh-base:
+        description: Pull the base images and build without layer cache (weekly rebuild).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,5 +42,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          pull: ${{ inputs.fresh-base }}
+          no-cache: ${{ inputs.fresh-base }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
