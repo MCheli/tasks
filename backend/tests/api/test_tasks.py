@@ -18,6 +18,24 @@ async def test_validation_empty_title(authed_client):
     assert resp.status_code == 422
 
 
+async def test_notes_are_capped(authed_client):
+    from app.schemas.task import NOTES_MAX_LENGTH
+
+    ok = await authed_client.post(
+        "/api/tasks",
+        json={"category": "personal", "title": "Long", "notes": "x" * NOTES_MAX_LENGTH},
+    )
+    assert ok.status_code == 201
+    too_long = "x" * (NOTES_MAX_LENGTH + 1)
+    create = await authed_client.post(
+        "/api/tasks", json={"category": "personal", "title": "Huge", "notes": too_long}
+    )
+    assert create.status_code == 422
+    task_id = ok.json()["task"]["id"]
+    patch = await authed_client.patch(f"/api/tasks/{task_id}", json={"notes": too_long})
+    assert patch.status_code == 422
+
+
 async def test_patch_changes_status(authed_client):
     resp = await authed_client.post("/api/tasks", json={"category": "personal", "title": "X"})
     task_id = resp.json()["task"]["id"]

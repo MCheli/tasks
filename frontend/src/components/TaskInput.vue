@@ -87,6 +87,7 @@ defineExpose({ focus: () => titleEl.value?.focus() })
         ref="notesEl"
         v-model="notes"
         rows="2"
+        maxlength="20000"
         placeholder="Notes (optional)"
         class="w-full text-sm border border-gray-200 rounded p-2 resize-none focus:outline-none focus:border-accent-500"
         @keydown="onNotesKey"
