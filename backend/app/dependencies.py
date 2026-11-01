@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import Cookie, Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.security import decode_access_token
+from app.core.security import decode_session_token, refreshed_access_token
 from app.db.session import get_db
 from app.models.api_key import ApiKey
 from app.models.user import User
@@ -18,7 +18,29 @@ SESSION_COOKIE = "session"
 API_KEY_HEADER = "X-API-Key"
 
 
+def set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="lax",
+        max_age=settings.JWT_EXPIRE_DAYS * 24 * 60 * 60,
+        domain=settings.COOKIE_DOMAIN,
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        domain=settings.COOKIE_DOMAIN,
+        path="/",
+    )
+
+
 async def get_current_user(
+    response: Response,
     session: str | None = Cookie(default=None, alias=SESSION_COOKIE),
     x_api_key: str | None = Header(default=None, alias=API_KEY_HEADER),
     db: AsyncSession = Depends(get_db),
@@ -27,20 +49,24 @@ async def get_current_user(
 
     The header is checked first so programmatic clients aren't forced to also
     clear cookies. Either path returns the owning User; both raise 401 on
-    failure with no information about which method failed.
+    failure with no information about which method failed. A session cookie
+    that is due for renewal is re-issued on the response (see core.security).
     """
     if x_api_key:
         return await _user_from_api_key(db, x_api_key)
 
     if not session:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
-    user_id = decode_access_token(session)
-    if not user_id:
+    token = decode_session_token(session)
+    if not token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid session")
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == token.user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+    renewed = refreshed_access_token(token)
+    if renewed:
+        set_session_cookie(response, renewed)
     return user
 
 

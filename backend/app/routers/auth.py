@@ -14,7 +14,7 @@ from app.core.oauth import is_google_configured, oauth_client
 from app.core.rate_limit import login_limiter
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
-from app.dependencies import SESSION_COOKIE, get_current_user
+from app.dependencies import clear_session_cookie, get_current_user, set_session_cookie
 from app.models.user import User
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.user import UserOut
@@ -22,27 +22,6 @@ from app.schemas.user import UserOut
 logger = logging.getLogger("tasks.auth")
 
 router = APIRouter()
-
-
-def _set_session_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
-        key=SESSION_COOKIE,
-        value=token,
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        max_age=settings.JWT_EXPIRE_DAYS * 24 * 60 * 60,
-        domain=settings.COOKIE_DOMAIN,
-        path="/",
-    )
-
-
-def _clear_session_cookie(response: Response) -> None:
-    response.delete_cookie(
-        key=SESSION_COOKIE,
-        domain=settings.COOKIE_DOMAIN,
-        path="/",
-    )
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -72,7 +51,7 @@ async def login(
 
     login_limiter.reset(payload.email)
     token = create_access_token(user.id)
-    _set_session_cookie(response, token)
+    set_session_cookie(response, token)
     return LoginResponse(user=UserOut.model_validate(user))
 
 
@@ -88,7 +67,7 @@ async def demo_login(response: Response, db: AsyncSession = Depends(get_db)) -> 
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "The demo is being rebuilt. Try again in a minute.",
         )
-    _set_session_cookie(response, create_access_token(user.id))
+    set_session_cookie(response, create_access_token(user.id))
     return LoginResponse(user=UserOut.model_validate(user))
 
 
@@ -104,7 +83,7 @@ async def auth_config() -> dict:
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response) -> None:
-    _clear_session_cookie(response)
+    clear_session_cookie(response)
 
 
 @router.get("/me", response_model=UserOut)
@@ -201,16 +180,7 @@ async def google_callback(
     # Issue a session cookie, then bounce to the SPA root.
     session_token = create_access_token(user.id)
     redirect = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-    redirect.set_cookie(
-        key=SESSION_COOKIE,
-        value=session_token,
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-        max_age=settings.JWT_EXPIRE_DAYS * 24 * 60 * 60,
-        domain=settings.COOKIE_DOMAIN,
-        path="/",
-    )
+    set_session_cookie(redirect, session_token)
     return redirect
 
 

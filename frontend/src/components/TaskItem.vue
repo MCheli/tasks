@@ -196,6 +196,7 @@ function fmtDate(iso) {
           <textarea
             v-model="editNotes"
             rows="3"
+            maxlength="20000"
             placeholder="Notes…"
             class="w-full text-sm border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-accent-500"
             @keydown.escape.stop="cancelEdit"

@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import check_production_settings, settings
+from app.core.headers import SecurityHeadersMiddleware
 from app.db.session import engine
 from app.demo import DemoReadOnlyMiddleware, NoIndexMiddleware
 from app.routers import health
@@ -39,10 +40,12 @@ async def _check_demo() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     errors, warnings = check_production_settings(settings)
-    for error in errors:
-        logger.error("INSECURE PRODUCTION SETTING: %s", error)
     for warning in warnings:
         logger.warning("Insecure production setting: %s", warning)
+    if errors:  # fail closed: refuse to serve with public secrets
+        for error in errors:
+            logger.error("INSECURE PRODUCTION SETTING: %s", error)
+        raise RuntimeError("FATAL: insecure production settings: " + " ".join(errors))
     if settings.DEMO_MODE:
         await _check_demo()  # raises → the server refuses to start
 
@@ -62,8 +65,8 @@ app = FastAPI(
     title="Tasks",
     version="0.1.0",
     lifespan=lifespan,
-    docs_url="/api/docs" if settings.ENABLE_DOCS else None,
-    openapi_url="/api/openapi.json" if settings.ENABLE_DOCS else None,
+    docs_url="/api/docs" if settings.docs_enabled else None,
+    openapi_url="/api/openapi.json" if settings.docs_enabled else None,
     redoc_url=None,
 )
 
@@ -92,6 +95,7 @@ app.add_middleware(
 # TASKS_DEMO_MODE is set (see app/demo.py).
 app.add_middleware(DemoReadOnlyMiddleware)
 app.add_middleware(NoIndexMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.exception_handler(Exception)

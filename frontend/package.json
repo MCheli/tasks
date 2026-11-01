@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "lint": "eslint src --ext .vue,.js",
+    "lint": "eslint src",
     "format": "prettier --write src",
     "test": "vitest run"
   },
@@ -19,16 +19,22 @@
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
     "autoprefixer": "^10.4.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-vue": "^9.19.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-vue": "^10.12.0",
+    "globals": "^17.14.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.0",
     "prettier": "^3.1.0",
     "tailwindcss": "^3.4.0",
-    "vite": "^5.0.0",
-    "vitest": "^2.1.9"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "minimatch": "^11.0.3",
+    "glob": "^14.0.3"
   }
 }

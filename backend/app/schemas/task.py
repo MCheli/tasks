@@ -11,10 +11,13 @@ from pydantic import BaseModel, ConfigDict, Field
 Category = Literal["personal", "professional"]
 Status = Literal["open", "completed", "canceled"]
 
+# The column is TEXT; the cap only bounds what one request can store.
+NOTES_MAX_LENGTH = 20_000
+
 
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=NOTES_MAX_LENGTH)
 
 
 class TaskCreate(TaskBase):
@@ -23,7 +26,7 @@ class TaskCreate(TaskBase):
 
 class TaskUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=500)
-    notes: str | None = None
+    notes: str | None = Field(default=None, max_length=NOTES_MAX_LENGTH)
     status: Status | None = None
     position: int | None = Field(default=None, ge=0)
 

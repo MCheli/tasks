@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 
 def _find_env_file() -> tuple[str, ...]:
@@ -28,6 +29,7 @@ def _find_env_file() -> tuple[str, ...]:
 # Defaults that are public in this repo. Production must override them.
 DEV_JWT_SECRET = "dev-only-not-secret-change-me"
 DEV_API_KEY_PEPPER = "dev-only-api-key-pepper-change-me"
+DEV_DB_PASSWORD = "changeme"
 _PLACEHOLDER_SECRETS = {DEV_JWT_SECRET, "CHANGE_ME_GENERATE_WITH_OPENSSL_RAND_HEX_32", ""}
 
 
@@ -42,15 +44,19 @@ class Settings(BaseSettings):
 
     # Runtime
     ENV: str = "development"
-    ENABLE_DOCS: bool = True
+    # Unset means on, except in production. Set true/false to force it either way.
+    ENABLE_DOCS: bool | None = None
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://cycle_todo:changeme@localhost:5432/cycle_todo"
 
-    # Auth
+    # Auth. A session token expires JWT_EXPIRE_DAYS after it was issued. Requests renew it once
+    # it is older than JWT_REFRESH_AFTER_HOURS, but never past JWT_MAX_SESSION_DAYS after sign-in.
     JWT_SECRET: str = Field(default=DEV_JWT_SECRET)
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_DAYS: int = 7
+    JWT_REFRESH_AFTER_HOURS: int = 12
+    JWT_MAX_SESSION_DAYS: int = 7
     COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: str | None = None
 
@@ -76,7 +82,7 @@ class Settings(BaseSettings):
     # Stored as raw str so pydantic-settings doesn't try to JSON-decode it.
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:8000"
 
-    @field_validator("COOKIE_DOMAIN", "DEMO_URL", mode="before")
+    @field_validator("COOKIE_DOMAIN", "DEMO_URL", "ENABLE_DOCS", mode="before")
     @classmethod
     def _empty_to_none(cls, v):
         if v == "" or v is None:
@@ -91,14 +97,18 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENV.lower() == "production"
 
+    @property
+    def docs_enabled(self) -> bool:
+        if self.ENABLE_DOCS is None:
+            return not self.is_production
+        return self.ENABLE_DOCS
+
 
 def check_production_settings(s: Settings) -> tuple[list[str], list[str]]:
     """Return (errors, warnings) for insecure production settings.
 
-    Anyone who knows the JWT secret can mint a session for any user, and the defaults are in git.
-    A default JWT secret is an error, but it is logged rather than raised for now: the prod env
-    hasn't been confirmed, and Watchtower would otherwise auto-deploy a crash loop.
-    TODO: fail closed (raise) once production's TASKS_JWT_SECRET is confirmed set.
+    Errors stop startup (see main.lifespan). The defaults are public, and anyone who knows the
+    JWT secret can mint a session for any user.
     """
     if not s.is_production:
         return [], []
@@ -108,13 +118,15 @@ def check_production_settings(s: Settings) -> tuple[list[str], list[str]]:
             "TASKS_ENV=production with the default TASKS_JWT_SECRET: anyone can forge sessions. "
             "Set it to `openssl rand -hex 32`."
         )
-    warnings = []
-    if len(s.JWT_SECRET) < 32:
-        warnings.append("TASKS_JWT_SECRET is shorter than 32 characters.")
-    if s.API_KEY_PEPPER == DEV_API_KEY_PEPPER:
-        warnings.append(
+    elif len(s.JWT_SECRET) < 32:
+        errors.append("TASKS_JWT_SECRET is shorter than 32 characters.")
+    if s.API_KEY_PEPPER in (DEV_API_KEY_PEPPER, ""):
+        errors.append(
             "TASKS_API_KEY_PEPPER is the public default. Setting it invalidates existing API keys."
         )
+    if make_url(s.DATABASE_URL).password == DEV_DB_PASSWORD:
+        errors.append("TASKS_DATABASE_URL uses the default database password.")
+    warnings = []
     if not s.COOKIE_SECURE:
         warnings.append("TASKS_COOKIE_SECURE is false; session cookies can travel over plain HTTP.")
     return errors, warnings
