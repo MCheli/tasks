@@ -85,6 +85,25 @@ jobs:
           no-cache: ${{ github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: true
+      - name: Smoke test the image (migrate, healthy, no build tools)
+        env:
+          IMAGE: ghcr.io/mcheli/tasks:ci-${{ github.sha }}
+        run: |
+          docker network create smoke
+          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=tasks postgres:15.19
+          docker run -d --name app --network smoke \
+            -e TASKS_DATABASE_URL=postgresql+asyncpg://postgres:smoke@db:5432/tasks \
+            -e TASKS_JWT_SECRET=ci-smoke-secret-at-least-32-characters-long \
+            "$IMAGE"
+          for _ in $(seq 1 60); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' app); [ "$s" = healthy ] && break; sleep 2
+          done
+          docker logs app
+          [ "$(docker inspect -f '{{.State.Health.Status}}' app)" = healthy ]
+          docker run --rm --entrypoint sh "$IMAGE" -c '! command -v curl && ! command -v gcc && ! command -v cc'
+          docker image inspect -f 'image size: {{.Size}} bytes' "$IMAGE"
+          docker run --rm --entrypoint sh "$IMAGE" -c 'echo "dpkg packages: $(dpkg-query -W | wc -l)"'
 
   # Publish only after every check above passed, and never for pull requests.
   # Scheduled and manual runs publish only from main.
