@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppConfigStore } from '@/stores/appConfig'
+import { signInErrorMessage } from '@/composables/signInError'
 import HeroVisual from '@/components/login/HeroVisual.vue'
 
 const router = useRouter()
@@ -16,6 +17,7 @@ const submitting = ref(false)
 const error = ref('')
 
 const ready = computed(() => appConfig.loaded)
+const signInError = computed(() => signInErrorMessage(route.query.error))
 
 const features = [
   'Personal + Professional',
@@ -159,6 +161,15 @@ function googleLogin() {
           </h2>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Pick up where your cycle left off.
+          </p>
+
+          <p
+            v-if="signInError"
+            role="alert"
+            data-testid="sign-in-error"
+            class="mt-6 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/30 rounded-lg px-3 py-2"
+          >
+            {{ signInError }}
           </p>
 
           <!-- Google SSO is the only path when configured. -->

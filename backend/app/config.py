@@ -52,11 +52,14 @@ class Settings(BaseSettings):
 
     # Auth. A session token expires JWT_EXPIRE_DAYS after it was issued. Requests renew it once
     # it is older than JWT_REFRESH_AFTER_HOURS, but never past JWT_MAX_SESSION_DAYS after sign-in.
+    # So: 30 days without opening the app signs you out, and every 90 days you sign in again. A
+    # Home Screen web app on iPhone has its own cookies and signs in through Google, so a short
+    # session there means a weekly round trip to Google.
     JWT_SECRET: str = Field(default=DEV_JWT_SECRET)
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_DAYS: int = 7
+    JWT_EXPIRE_DAYS: int = 30
     JWT_REFRESH_AFTER_HOURS: int = 12
-    JWT_MAX_SESSION_DAYS: int = 7
+    JWT_MAX_SESSION_DAYS: int = 90
     COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: str | None = None
 
