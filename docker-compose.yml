@@ -41,7 +41,7 @@ services:
       TASKS_ENV: ${TASKS_ENV:-development}
       TASKS_DATABASE_URL: postgresql+asyncpg://cycle_todo:changeme@db:5432/cycle_todo
       TASKS_JWT_SECRET: ${TASKS_JWT_SECRET:-dev-only-not-secret-change-me}
-      TASKS_JWT_EXPIRE_DAYS: ${TASKS_JWT_EXPIRE_DAYS:-7}
+      TASKS_JWT_EXPIRE_DAYS: ${TASKS_JWT_EXPIRE_DAYS:-30}
       TASKS_COOKIE_SECURE: "false"
       TASKS_TEST_USER_EMAIL: ${TASKS_TEST_USER_EMAIL:-}
       TASKS_TEST_USER_PASSWORD: ${TASKS_TEST_USER_PASSWORD:-}

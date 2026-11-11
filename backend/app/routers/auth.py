@@ -12,9 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.oauth import is_google_configured, oauth_client
 from app.core.rate_limit import login_limiter
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, decode_session_token, verify_password
 from app.db.session import get_db
-from app.dependencies import clear_session_cookie, get_current_user, set_session_cookie
+from app.dependencies import (
+    SESSION_COOKIE,
+    clear_session_cookie,
+    get_current_user,
+    set_session_cookie,
+)
 from app.models.user import User
 from app.schemas.auth import LoginRequest, LoginResponse
 from app.schemas.user import UserOut
@@ -113,13 +118,27 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
+def _sign_in_failed(reason: str) -> RedirectResponse:
+    """Send a failed Google sign-in back to the login page, which explains it and offers a retry.
+
+    A JSON error is a dead end in an iPhone Home Screen web app: there is no back button.
+    """
+    return RedirectResponse(url=f"/login?error={reason}", status_code=status.HTTP_302_FOUND)
+
+
 @router.get("/google/callback", name="google_callback")
 async def google_callback(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Exchange the authorization code, upsert the user, set session cookie."""
+    """Exchange the authorization code, upsert the user, set session cookie.
+
+    Every failure redirects to /login?error=<reason> (google, unverified) rather than returning
+    JSON. A Home Screen web app on iOS can deliver the callback twice for one sign-in (once from
+    the app, once from the in-app browser that showed Google's page); the second copy fails the
+    state/code check. If that request already carries a valid session, it goes to the app.
+    """
     oauth = oauth_client()
     if oauth is None:
         raise HTTPException(
@@ -130,8 +149,15 @@ async def google_callback(
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as exc:  # noqa: BLE001 — Authlib raises various subclasses
-        logger.warning("Google OAuth code exchange failed: %s", exc)
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google OAuth exchange failed") from exc
+        existing = request.cookies.get(SESSION_COOKIE)
+        if existing and decode_session_token(existing):
+            logger.info(
+                "Google callback failed (%s) but the request is already signed in; opening the app",
+                type(exc).__name__,
+            )
+            return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        logger.warning("Google OAuth code exchange failed: %s: %s", type(exc).__name__, exc)
+        return _sign_in_failed("google")
 
     userinfo = token.get("userinfo")
     if not userinfo:
@@ -142,17 +168,11 @@ async def google_callback(
     email = userinfo.get("email")
     if not sub or not email:
         logger.warning("Google userinfo missing sub or email (keys: %s)", sorted(userinfo))
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Google did not return an email; cannot sign in.",
-        )
+        return _sign_in_failed("google")
     # An unverified address must not be able to claim an existing account by email.
     if userinfo.get("email_verified") not in (True, "true"):
         logger.warning("Google sign-in refused: email not verified for sub %s", sub)
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Your Google email address is not verified; cannot sign in.",
-        )
+        return _sign_in_failed("unverified")
 
     # Upsert: prefer match-by-google_sub; fall back to match-by-email
     # (covers the case where the user was first created via password and

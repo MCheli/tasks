@@ -101,8 +101,25 @@ def test_refresh_never_extends_past_the_session_limit(monkeypatch):
     assert refreshed_access_token(_signed_in(40, refreshed_hours_ago=13)) is None
 
 
-def test_defaults_keep_a_fixed_seven_day_session():
-    assert refreshed_access_token(_signed_in(3 * 24)) is None
+def test_defaults_slide_for_thirty_days_and_stop_at_ninety():
+    """Default session: a 30-day idle timeout renewed by use, and a fresh sign-in every 90 days.
+
+    It was a fixed 7 days until 2026-11-11: a weekly Google round trip from the iPhone Home
+    Screen web app, which keeps its own cookies.
+    """
+    from app.config import Settings
+
+    assert Settings.model_fields["JWT_EXPIRE_DAYS"].default == 30
+    assert Settings.model_fields["JWT_MAX_SESSION_DAYS"].default == 90
+    day = 24 * 3600
+
+    # Used three days after signing in: renewed, good for another 30 days.
+    renewed = _session(refreshed_access_token(_signed_in(3 * 24)))
+    assert renewed.expires_at - int(time.time()) >= 30 * day - 5
+
+    # Signed in 65 days ago, last renewed 6 days ago: renewed, but only up to day 90.
+    late = _signed_in(65 * 24, refreshed_hours_ago=6 * 24)
+    assert _session(refreshed_access_token(late)).expires_at == late.auth_time + 90 * day
 
 
 def test_token_without_auth_time_uses_issue_time():

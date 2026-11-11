@@ -153,6 +153,84 @@ async def test_google_callback_refuses_unverified_email(client, test_user, monke
     fake = SimpleNamespace(google=SimpleNamespace(authorize_access_token=_token))
     monkeypatch.setattr(auth_router, "oauth_client", lambda: fake)
     resp = await client.get("/api/auth/google/callback", follow_redirects=False)
-    assert resp.status_code == 400
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/login?error=unverified"
     assert "session" not in resp.cookies
     assert test_user.google_sub is None
+
+
+# ---------------------------------------------------------------------------
+# Google callback: never a JSON dead end (iPhone Home Screen web app has no back button).
+
+
+class _FakeGoogle:
+    def __init__(self, token=None, error=None):
+        self._token, self._error = token, error
+
+    async def authorize_access_token(self, _request):
+        if self._error:
+            raise self._error
+        return self._token
+
+    async def userinfo(self, token=None):
+        return {}
+
+
+def _fake_oauth(monkeypatch, **kwargs):
+    from types import SimpleNamespace
+
+    from app.routers import auth as auth_router
+
+    monkeypatch.setattr(
+        auth_router, "oauth_client", lambda: SimpleNamespace(google=_FakeGoogle(**kwargs))
+    )
+
+
+async def test_failed_google_callback_redirects_to_login(client, monkeypatch):
+    from authlib.integrations.base_client.errors import MismatchingStateError
+
+    _fake_oauth(monkeypatch, error=MismatchingStateError())
+    resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/login?error=google"
+    assert "session" not in resp.cookies
+
+
+async def test_repeated_google_callback_with_a_session_opens_the_app(
+    client, test_user, monkeypatch
+):
+    """iOS can deliver one sign-in's callback twice; the second copy fails but is already signed in."""
+    from authlib.integrations.base_client.errors import OAuthError
+
+    from app.core.security import create_access_token
+
+    _fake_oauth(monkeypatch, error=OAuthError(error="invalid_grant"))
+    client.cookies.set("session", create_access_token(test_user.id))
+    try:
+        resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    finally:
+        client.cookies.clear()
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/"
+
+    client.cookies.set("session", "not-a-token")
+    try:
+        resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    finally:
+        client.cookies.clear()
+    assert resp.headers["location"] == "/login?error=google"
+
+
+async def test_google_callback_without_email_or_unverified_redirects(client, monkeypatch):
+    _fake_oauth(monkeypatch, token={"userinfo": {"sub": "123"}})
+    resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    assert resp.headers["location"] == "/login?error=google"
+
+    _fake_oauth(
+        monkeypatch,
+        token={"userinfo": {"sub": "123", "email": "x@example.com", "email_verified": False}},
+    )
+    resp = await client.get("/api/auth/google/callback", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/login?error=unverified"
+    assert "session" not in resp.cookies
