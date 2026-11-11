@@ -44,6 +44,8 @@ test-results/
 .playwright-mcp/
 *.png
 !docs/screenshots/*.png
+# Home Screen web app icons (served from the site root)
+!frontend/public/*.png
 
 # Local agent / docs working copies
 files/
