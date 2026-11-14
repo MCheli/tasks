@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15.19
+        image: postgres:15.20
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: '24.22.3'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
@@ -91,7 +91,7 @@ jobs:
           IMAGE: ghcr.io/mcheli/tasks:ci-${{ github.sha }}
         run: |
           docker network create smoke
-          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=tasks postgres:15.19
+          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=tasks postgres:15.20
           docker run -d --name app --network smoke \
             -e TASKS_DATABASE_URL=postgresql+asyncpg://postgres:smoke@db:5432/tasks \
             -e TASKS_JWT_SECRET=ci-smoke-secret-at-least-32-characters-long \

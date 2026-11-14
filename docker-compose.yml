@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:15.19
+    image: postgres:15.20
     environment:
       POSTGRES_USER: cycle_todo
       POSTGRES_PASSWORD: changeme
@@ -16,7 +16,7 @@ services:
       retries: 10
 
   db-test:
-    image: postgres:15.19
+    image: postgres:15.20
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
