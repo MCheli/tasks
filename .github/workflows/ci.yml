@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15.20
+        image: postgres:16.16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -91,7 +91,7 @@ jobs:
           IMAGE: ghcr.io/mcheli/tasks:ci-${{ github.sha }}
         run: |
           docker network create smoke
-          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=tasks postgres:15.20
+          docker run -d --name db --network smoke -e POSTGRES_PASSWORD=smoke -e POSTGRES_DB=tasks postgres:16.16
           docker run -d --name app --network smoke \
             -e TASKS_DATABASE_URL=postgresql+asyncpg://postgres:smoke@db:5432/tasks \
             -e TASKS_JWT_SECRET=ci-smoke-secret-at-least-32-characters-long \

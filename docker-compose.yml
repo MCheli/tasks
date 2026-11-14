@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:15.20
+    # Same major as production tasks-db (16.x). A pg_data volume created by the old 15.x
+    # image won't start on 16: `docker compose down -v` to recreate the local dev DB.
+    image: postgres:16.16
     environment:
       POSTGRES_USER: cycle_todo
       POSTGRES_PASSWORD: changeme
@@ -16,7 +18,7 @@ services:
       retries: 10
 
   db-test:
-    image: postgres:15.20
+    image: postgres:16.16
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
