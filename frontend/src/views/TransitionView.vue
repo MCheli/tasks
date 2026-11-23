@@ -105,6 +105,15 @@ function cancel() {
         Tap a task to switch between forward, complete and cancel. In the demo this is a
         preview: starting the new cycle is turned off.
       </p>
+      <p
+        v-if="cycles.agentSummary.open"
+        class="mb-3 text-xs text-gray-500"
+        data-testid="agent-carryover"
+      >
+        {{ cycles.agentSummary.open }} open
+        {{ cycles.agentSummary.open === 1 ? 'item' : 'items' }} on the agents' list carry over to
+        the new cycle on their own.
+      </p>
       <div
         v-if="!cycles.tasks.open.length"
         class="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500"

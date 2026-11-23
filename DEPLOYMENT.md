@@ -59,6 +59,9 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_GOOGLE_REDIRECT_URI` | yes (prod) | Must match exactly one of the redirect URIs registered in Google Cloud Console. | `https://tasks.markcheli.com/api/auth/google/callback` |
 | `TASKS_ALLOWED_ORIGINS` | yes | Comma-separated list. Production should be the exact prod URL. | `https://tasks.markcheli.com` |
 | `TASKS_DEMO_URL` | no | Real deployment: the public demo's URL; the login page shows a "Try the live demo" card. | `https://tasks-demo.markcheli.com` |
+| `TASKS_PUBLIC_URL` | for the connector | The origin the app is reached at. Turns on the MCP connector at `<url>/mcp` and its OAuth endpoints (it is the OAuth issuer and the resource id). Unset: no connector. Never set on the demo. | `https://tasks.markcheli.com` |
+| `TASKS_MCP_ALLOWED_EMAILS` | for the connector | Comma-separated Google accounts allowed to sign the connector in (they must also be users of the app). The compose file takes it from `HOMELAB_MCP_ALLOWED_EMAILS`, the same allowlist homelab-mcp uses. Empty: connector sign-in is refused; API-key bearer tokens still work. | _(from .env)_ |
+| `TASKS_MCP_ACCESS_TOKEN_SECONDS` / `TASKS_MCP_REFRESH_TOKEN_DAYS` | no | Connector token lifetimes. Defaults 3600 and 30. | |
 | `TASKS_DEMO_MODE` | demo only | `true` makes this deployment the read-only public demo. Never set on the real one. | `true` |
 | `TASKS_DEMO_USER_EMAIL` | no | Demo persona. Must end in `@tasks.dev`. Default `claudius@tasks.dev`. | _(default)_ |
 | `TASKS_STATIC_DIR` | no | Override the static-files location (defaults to `/app/static`). | _(empty)_ |
@@ -209,6 +212,24 @@ The same image in demo mode, on its own database holding only the Claudius Banks
 - **Deploy:** `~/83rr-poweredge/scripts/tasks-deploy.sh` pulls and restarts `tasks` and `tasks-demo` and checks both.
 - **Check:** `curl -s https://tasks-demo.markcheli.com/api/auth/config` shows `"demo_mode":true`; a POST to `/api/api-keys` answers 403; `cd e2e && BASE=https://tasks-demo.markcheli.com node scripts/demo-tour.mjs` reports no problems.
 
+## MCP connector (tasks.markcheli.com/mcp)
+
+The app serves a claude.ai custom connector itself (no homelab-mcp involved): `https://tasks.markcheli.com/mcp`, with OAuth 2.1 at `/authorize`, `/token`, `/register`, `/revoke` and the metadata at `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource/mcp`. Details in `API_SPEC.md` § MCP connector and `backend/app/mcp/`.
+
+- **Env:** `TASKS_PUBLIC_URL=https://tasks.markcheli.com` and `TASKS_MCP_ALLOWED_EMAILS=${HOMELAB_MCP_ALLOWED_EMAILS}` on the `tasks` service (83rr-poweredge compose). Nothing new in Google Cloud Console: the connector's Google sign-in uses the app's existing OAuth client and its registered redirect URI `/api/auth/google/callback` (the callback tells the two flows apart by a state the app signed).
+- **NGINX:** the `tasks.markcheli.com` block has a second `location` for `/mcp`, the OAuth paths and `/.well-known/oauth-*` with `proxy_buffering off`, HTTP/1.1 and a 300 s read timeout (streamable HTTP may stream), rate-limited with the `api` zone. The connector only ever answers JSON today (stateless mode), so the normal `location /` would also have worked; the dedicated block keeps streaming possible.
+- **Storage:** three small tables (`mcp_oauth_clients/codes/tokens`), created by the migration that ships with the connector. Tokens are hashed with `TASKS_API_KEY_PEPPER`: rotating the pepper signs every connector out, as it revokes every API key.
+- **Checks after a deploy:**
+  ```bash
+  curl -s https://tasks.markcheli.com/.well-known/oauth-protected-resource/mcp   # 200, resource + authorization_servers
+  curl -s https://tasks.markcheli.com/.well-known/oauth-authorization-server     # 200, S256, registration_endpoint
+  curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Accept: application/json, text/event-stream' \
+       -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"initialize"}' https://tasks.markcheli.com/mcp   # 401 + WWW-Authenticate
+  # with the Tasks API key (1Password, "Tasks API key") as Bearer: initialize / tools/list answer 200
+  ```
+- **claude.ai:** Settings → Connectors → Add custom connector → `https://tasks.markcheli.com/mcp` → Connect → Google sign-in with the allowlisted account.
+- **Scheduled jobs / agents:** the same `/mcp` with `Authorization: Bearer tsk_…` (an app API key) and no OAuth.
+
 ## Rollback
 
 ```bash
@@ -236,6 +257,7 @@ If a rollback would require a schema downgrade, run Alembic manually first. (App
 - **Home Screen web app:** `frontend/public/` holds `manifest.webmanifest`, the icons and `favicon.svg`; Vite copies them to the site root and the SPA fallback serves them. On iPhone: Safari → Share → Add to Home Screen. It keeps its own cookies (separate from Safari), so sign in once inside it.
 - **JWT secret is reused** for the OAuth state cookie's signing key. Rotating `TASKS_JWT_SECRET` invalidates both: existing user sessions and any in-flight OAuth redirects (those will fail their state check). Schedule rotation accordingly.
 - **Sessions can't be revoked server-side.** Logout clears the cookie, but a copied token stays valid until it expires (no token store; adding one needs a migration). Rotating `TASKS_JWT_SECRET` signs everyone out.
+- **Two parts per list since 2026-11-23:** every task has an `owner`, `human` (Mark's) or `agent` (the agents' follow-up list, written mostly through the connector). The REST list endpoints default to `owner=human`, so the Chore tracker and the ambient display keep seeing what they always did until they ask for `owner=agent` or `all` (`GET /api/tasks/overview` returns all four lists at once). Open agent items carry over at a cycle transition without an action.
 - **Security headers:** the app sends `Content-Security-Policy` (same-origin scripts only; none on `/api/docs`, which loads Swagger UI from a CDN) and `Permissions-Policy`. NGINX adds HSTS, `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`, so the app doesn't repeat them. Task notes are capped at 20,000 characters.
 - bcrypt is pinned to `>=4.0,<4.1` because passlib 1.7.x reads `bcrypt.__about__` which 4.1+ removed. Don't bump bcrypt without checking passlib first.
 - The Google "Test user" list in Google Cloud Console gates who can actually sign in. Until the OAuth app is "Verified" by Google (overkill for this), only listed test users (Mark's email) can authenticate. To add another user later, add them to that list in the Cloud Console.

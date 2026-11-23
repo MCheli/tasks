@@ -17,7 +17,8 @@ router = APIRouter()
 @router.get("", response_model=HistoryResponse)
 async def get_history(
     category: str = Query(..., pattern="^(personal|professional)$"),
+    owner: str = Query("human", pattern="^(human|agent|all)$"),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> HistoryResponse:
-    return await history_service.get_history(db, user, category)
+    return await history_service.get_history(db, user, category, owner)

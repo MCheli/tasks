@@ -139,6 +139,17 @@ async def google_callback(
     the app, once from the in-app browser that showed Google's page); the second copy fails the
     state/code check. If that request already carries a valid session, it goes to the app.
     """
+    # The MCP connector's sign-in uses this same registered redirect URI, with a state signed by
+    # the app (app/mcp/oauth.py). Recognise it before Authlib looks for its own state cookie.
+    from app.mcp.oauth import complete_google_sign_in, decode_state
+
+    pending = decode_state(request.query_params.get("state"))
+    if pending is not None:
+        target = await complete_google_sign_in(
+            db, pending, request.query_params.get("code"), request.query_params.get("error")
+        )
+        return RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+
     oauth = oauth_client()
     if oauth is None:
         raise HTTPException(

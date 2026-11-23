@@ -8,8 +8,10 @@ import * as tasksApi from '@/api/tasks'
 import draggable from 'vuedraggable'
 
 import TabSwitcher from '@/components/TabSwitcher.vue'
+import OwnerSwitcher from '@/components/OwnerSwitcher.vue'
 import TaskInput from '@/components/TaskInput.vue'
 import TaskItem from '@/components/TaskItem.vue'
+import AgentTaskItem from '@/components/AgentTaskItem.vue'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 
 const router = useRouter()
@@ -25,6 +27,8 @@ useKeyboardShortcuts({
   'g h': () => router.push('/history'),
   'g c': () => router.push('/cycle'),
   'g s': () => router.push('/settings'),
+  'g a': () => cycles.setOwner('agent'),
+  'g m': () => cycles.setOwner('human'),
 })
 
 async function logout() {
@@ -48,6 +52,13 @@ async function onReorderEnd(evt) {
     cycles.refresh()
   }
 }
+
+const isAgents = computed(() => cycles.activeOwner === 'agent')
+const shown = computed(() => cycles.visibleTasks)
+const summary = computed(() => cycles.visibleSummary)
+const initialLoading = computed(
+  () => cycles.loading && !shown.value.open.length && !shown.value.completed.length
+)
 
 const cycleStartedRel = computed(() => {
   if (!cycles.currentCycle?.started_at) return ''
@@ -105,19 +116,30 @@ const cycleStartedRel = computed(() => {
     </header>
 
     <main class="max-w-2xl mx-auto p-4 pb-32">
-      <!-- Meta line -->
-      <div class="flex items-baseline justify-between text-xs text-gray-500 mb-3">
-        <span>Cycle started {{ cycleStartedRel }}</span>
+      <!-- Mine / Agents + meta line -->
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <OwnerSwitcher />
         <button
-          class="hover:text-gray-700"
+          class="text-xs text-gray-500 hover:text-gray-700 text-right"
           :title="cycles.showResolved ? 'Hide done/canceled' : 'Show done/canceled'"
           @click="cycles.toggleShowResolved"
         >
-          <span class="font-medium">{{ cycles.summary.open }}</span> open ·
-          <span class="font-medium">{{ cycles.summary.completed }}</span> done ·
-          <span class="font-medium">{{ cycles.summary.canceled }}</span> canceled
+          <span class="font-medium">{{ summary.open }}</span> open ·
+          <span class="font-medium">{{ summary.completed }}</span> done
+          <template v-if="!isAgents">
+            · <span class="font-medium">{{ summary.canceled }}</span> canceled
+          </template>
+          <template v-else-if="summary.blocked">
+            · <span class="font-medium text-amber-700">{{ summary.blocked }}</span> blocked
+          </template>
         </button>
       </div>
+      <p class="text-[11px] text-gray-400 mb-3">
+        Cycle started {{ cycleStartedRel }}
+        <template v-if="isAgents">
+          · the agents' follow-up list for this cycle; open items carry over on their own
+        </template>
+      </p>
 
       <TaskInput
         ref="taskInputRef"
@@ -126,7 +148,7 @@ const cycleStartedRel = computed(() => {
 
       <!-- Initial loading skeleton -->
       <div
-        v-if="cycles.loading && !cycles.tasks.open.length && !cycles.tasks.completed.length"
+        v-if="initialLoading"
         class="bg-white rounded-lg border border-gray-200 overflow-hidden"
       >
         <div
@@ -139,66 +161,108 @@ const cycleStartedRel = computed(() => {
         </div>
       </div>
 
-      <!-- Open tasks (drag-reorderable) -->
-      <section
-        v-else-if="cycles.tasks.open.length"
-        class="bg-white rounded-lg border border-gray-200 overflow-hidden"
-      >
-        <draggable
-          v-model="cycles.tasks.open"
-          item-key="id"
-          handle=".drag-handle"
-          :disabled="appConfig.demo"
-          ghost-class="bg-accent-50"
-          drag-class="opacity-90"
-          :animation="150"
-          @end="onReorderEnd"
+      <!-- ── Mark's list: open tasks (drag-reorderable) ── -->
+      <template v-else-if="!isAgents">
+        <section
+          v-if="cycles.tasks.open.length"
+          class="bg-white rounded-lg border border-gray-200 overflow-hidden"
         >
-          <template #item="{ element }">
-            <TaskItem :task="element" />
-          </template>
-        </draggable>
-      </section>
-      <div
-        v-else
-        class="bg-white rounded-lg border border-gray-200 px-4 py-8 text-center text-sm text-gray-400"
-      >
-        No open tasks. Add one above — or press
-        <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
-        to focus the input.
-      </div>
+          <draggable
+            v-model="cycles.tasks.open"
+            item-key="id"
+            handle=".drag-handle"
+            :disabled="appConfig.demo"
+            ghost-class="bg-accent-50"
+            drag-class="opacity-90"
+            :animation="150"
+            @end="onReorderEnd"
+          >
+            <template #item="{ element }">
+              <TaskItem :task="element" />
+            </template>
+          </draggable>
+        </section>
+        <div
+          v-else
+          class="bg-white rounded-lg border border-gray-200 px-4 py-8 text-center text-sm text-gray-400"
+        >
+          No open tasks. Add one above — or press
+          <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
+          to focus the input.
+        </div>
+      </template>
 
-      <!-- Completed -->
-      <section
-        v-if="cycles.showResolved && cycles.tasks.completed.length"
-        class="mt-6"
-      >
-        <h2 class="text-[11px] uppercase tracking-wide font-medium text-gray-500 mb-1 px-1">
-          Completed ({{ cycles.tasks.completed.length }})
-        </h2>
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <TaskItem
-            v-for="t in cycles.tasks.completed"
+      <!-- ── Agents' list: open items with status chips ── -->
+      <template v-else>
+        <section
+          v-if="cycles.agentTasks.open.length"
+          class="bg-white rounded-lg border border-gray-200 overflow-hidden"
+          data-testid="agent-open-list"
+        >
+          <AgentTaskItem
+            v-for="t in cycles.agentTasks.open"
             :key="t.id"
             :task="t"
           />
+        </section>
+        <div
+          v-else
+          class="bg-white rounded-lg border border-gray-200 px-4 py-8 text-center text-sm text-gray-400"
+        >
+          Nothing open on the agents' list. Claude adds items here through the connector when it
+          has follow-up work to track.
+        </div>
+      </template>
+
+      <!-- Completed / Done -->
+      <section
+        v-if="cycles.showResolved && shown.completed.length"
+        class="mt-6"
+      >
+        <h2 class="text-[11px] uppercase tracking-wide font-medium text-gray-500 mb-1 px-1">
+          {{ isAgents ? 'Done' : 'Completed' }} ({{ shown.completed.length }})
+        </h2>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <template v-if="isAgents">
+            <AgentTaskItem
+              v-for="t in shown.completed"
+              :key="t.id"
+              :task="t"
+            />
+          </template>
+          <template v-else>
+            <TaskItem
+              v-for="t in shown.completed"
+              :key="t.id"
+              :task="t"
+            />
+          </template>
         </div>
       </section>
 
       <!-- Canceled -->
       <section
-        v-if="cycles.showResolved && cycles.tasks.canceled.length"
+        v-if="cycles.showResolved && shown.canceled.length"
         class="mt-6"
       >
         <h2 class="text-[11px] uppercase tracking-wide font-medium text-gray-500 mb-1 px-1">
-          Canceled ({{ cycles.tasks.canceled.length }})
+          Canceled ({{ shown.canceled.length }})
         </h2>
         <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <TaskItem
-            v-for="t in cycles.tasks.canceled"
-            :key="t.id"
-            :task="t"
-          />
+          <template v-if="isAgents">
+            <AgentTaskItem
+              v-for="t in shown.canceled"
+              :key="t.id"
+              :task="t"
+            />
+          </template>
+          <template v-else>
+            <TaskItem
+              v-for="t in shown.canceled"
+              :key="t.id"
+              :task="t"
+            />
+          </template>
         </div>
       </section>
 

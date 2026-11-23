@@ -141,3 +141,18 @@ Format:
 **Decision:** Use `vuedraggable@4.1.0` (the Vue 3 compatible release line).
 **Rationale:** Earlier 2.x line is Vue 2 only.
 **Conflicts with:** none.
+
+## 2026-11-23 — Agent list is an owner column, not a separate table
+**Decision:** The agents' follow-up list is `tasks.owner = 'agent'` on the existing table, in the same cycles as Mark's items, plus nullable agent fields (`source`, `link`, `agent_status`) and a `task_notes` log keyed by lineage. Every existing read endpoint defaults to `owner=human`; the new `GET /api/tasks` and `/api/tasks/overview` are the only places that default to all.
+**Rationale:** One table keeps display ids, lineage, soft delete and the transition code shared; the owner default keeps the Chore tracker and the ambient display unchanged until they opt in. Agent items are auto-forwarded at a transition so Mark never triages them.
+**Conflicts with:** none.
+
+## 2026-11-23 — MCP connector uses the official `mcp` SDK, stateless, mounted route by route
+**Decision:** `/mcp` is served by the `mcp` SDK's server in stateless mode with JSON responses, its OAuth routes backed by three Postgres tables, with routes appended to the FastAPI router instead of mounting the SDK's Starlette app at `/`.
+**Rationale:** Two uvicorn workers share no memory (sessions and OAuth state must live in Postgres); a root mount would swallow the SPA catch-all. The SDK's handlers give the exact metadata/DCR/PKCE/token behaviour claude.ai expects.
+**Conflicts with:** none.
+
+## 2026-11-23 — Connector Google sign-in reuses the app's OAuth client and callback
+**Decision:** The connector's authorization leg sends the browser to Google with the Tasks app's own client id and the already-registered redirect URI `/api/auth/google/callback`, carrying a state the app signed; the callback recognises that state and finishes the connector flow, otherwise it is the normal login.
+**Rationale:** No new redirect URI in Google Cloud Console and no dependency on homelab-mcp's client. The email allowlist (`TASKS_MCP_ALLOWED_EMAILS`) is fed from `HOMELAB_MCP_ALLOWED_EMAILS`, and the account must already be a user: the connector never creates users.
+**Conflicts with:** none.

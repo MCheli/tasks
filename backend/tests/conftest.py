@@ -23,11 +23,18 @@ TEST_DB_URL = os.environ.get(
 # Ensure app.config.Settings sees the test DB before any module imports it.
 os.environ.setdefault("TASKS_DATABASE_URL", TEST_DB_URL)
 os.environ.setdefault("TASKS_JWT_SECRET", "test-secret-key-do-not-use-in-prod")
+# The MCP connector is mounted when the app knows its public URL (http is fine for localhost).
+os.environ.setdefault("TASKS_PUBLIC_URL", "http://localhost:8000")
+os.environ.setdefault("TASKS_MCP_ALLOWED_EMAILS", "alice@example.com")
+# A .env higher up the tree (the main checkout's) must not change session defaults under test.
+os.environ.setdefault("TASKS_JWT_EXPIRE_DAYS", "30")
+os.environ.setdefault("TASKS_JWT_MAX_SESSION_DAYS", "90")
+os.environ.setdefault("TASKS_JWT_REFRESH_AFTER_HOURS", "12")
 
 from app.db.base import Base  # noqa: E402
 
 # Import all model modules so Base.metadata is populated.
-from app.models import cycle, task, user  # noqa: E402,F401
+from app.models import api_key, cycle, mcp_oauth, task, user  # noqa: E402,F401
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")

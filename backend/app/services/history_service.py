@@ -17,9 +17,13 @@ from app.schemas.history import (
     Lineage,
     LineageSpan,
 )
+from app.services.owners import owner_clause
 
 
-async def get_history(db: AsyncSession, user: User, category: str) -> HistoryResponse:
+async def get_history(
+    db: AsyncSession, user: User, category: str, owner: str = "human"
+) -> HistoryResponse:
+
     cycles = list(
         (
             await db.execute(
@@ -41,6 +45,7 @@ async def get_history(db: AsyncSession, user: User, category: str) -> HistoryRes
                     Task.user_id == user.id,
                     Cycle.category == category,
                     Task.deleted_at.is_(None),
+                    owner_clause(owner),
                 )
                 .order_by(Cycle.started_at.asc())
             )

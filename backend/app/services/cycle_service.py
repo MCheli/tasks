@@ -28,6 +28,7 @@ from app.schemas.cycle import (
     TransitionSummary,
 )
 from app.schemas.task import TaskOut
+from app.services.owners import owner_clause
 from app.services.task_serializer import to_task_out_many
 
 VALID_CATEGORIES = ("personal", "professional")
@@ -75,7 +76,9 @@ async def get_cycle(db: AsyncSession, user: User, cycle_id: UUID) -> Cycle:
     return cycle
 
 
-async def _load_cycle_tasks(db: AsyncSession, user: User, cycle: Cycle) -> dict[str, list[Task]]:
+async def _load_cycle_tasks(
+    db: AsyncSession, user: User, cycle: Cycle, owner: str = "human"
+) -> dict[str, list[Task]]:
     """Return tasks for a cycle, grouped by status. Excludes deleted rows.
 
     Sort: position ASC within each group.
@@ -86,6 +89,7 @@ async def _load_cycle_tasks(db: AsyncSession, user: User, cycle: Cycle) -> dict[
             Task.cycle_id == cycle.id,
             Task.user_id == user.id,
             Task.deleted_at.is_(None),
+            owner_clause(owner),
         )
         .order_by(Task.position.asc(), Task.created_at.asc())
     )
@@ -95,8 +99,10 @@ async def _load_cycle_tasks(db: AsyncSession, user: User, cycle: Cycle) -> dict[
     return grouped
 
 
-async def cycle_detail(db: AsyncSession, user: User, cycle: Cycle) -> CycleDetail:
-    grouped = await _load_cycle_tasks(db, user, cycle)
+async def cycle_detail(
+    db: AsyncSession, user: User, cycle: Cycle, owner: str = "human"
+) -> CycleDetail:
+    grouped = await _load_cycle_tasks(db, user, cycle, owner)
     out: dict[str, list[TaskOut]] = {
         "open": await to_task_out_many(db, user, grouped["open"]),
         "completed": await to_task_out_many(db, user, grouped["completed"]),
@@ -120,6 +126,7 @@ async def list_cycles(
     category: str,
     limit: int = 50,
     offset: int = 0,
+    owner: str = "human",
 ) -> CycleListResponse:
     _check_category(category)
     cycles_q = (
@@ -148,6 +155,7 @@ async def list_cycles(
             Task.cycle_id.in_([c.id for c in cycle_rows]),
             Task.user_id == user.id,
             Task.deleted_at.is_(None),
+            owner_clause(owner),
         )
         .group_by(Task.cycle_id, Task.status)
     )
@@ -178,7 +186,11 @@ async def transition_cycle(
     cycle_id: UUID,
     actions: list[TransitionAction],
 ) -> TransitionResponse:
-    """Close `cycle_id` and create a new active cycle for the same category."""
+    """Close `cycle_id` and create a new active cycle for the same category.
+
+    Every open task of Mark's own list needs an action. Open agent items are carried over on
+    their own (they aren't his to triage each cycle); an action given for one is honored.
+    """
     old_cycle = await db.scalar(select(Cycle).where(Cycle.id == cycle_id, Cycle.user_id == user.id))
     if not old_cycle:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Cycle not found")
@@ -202,6 +214,9 @@ async def transition_cycle(
 
     action_by_pid: dict[UUID, str] = {a.persistent_task_id: a.action for a in actions}
     open_pids = {t.persistent_task_id for t in open_tasks}
+    for t in open_tasks:
+        if t.owner == "agent":
+            action_by_pid.setdefault(t.persistent_task_id, "forward")
 
     # Validate every open task has an action.
     missing = open_pids - set(action_by_pid.keys())
@@ -227,6 +242,8 @@ async def transition_cycle(
         if action == "complete":
             t.status = "completed"
             t.completed_at = now
+            if t.owner == "agent":
+                t.agent_status = "done"
             completed_count += 1
         elif action == "cancel":
             t.status = "canceled"
@@ -265,6 +282,10 @@ async def transition_cycle(
             notes=t.notes,
             status="open",
             position=t.position,
+            owner=t.owner,
+            source=t.source,
+            link=t.link,
+            agent_status=t.agent_status,
         )
         # The "forward" semantic for the OLD row: we mark it completed-equivalent
         # by leaving status='open' but the cycle is now closed. The task is
@@ -275,8 +296,11 @@ async def transition_cycle(
 
     await db.flush()
 
+    # The response lists Mark's forwarded items (agent items are carried separately).
     out = {
-        "open": await to_task_out_many(db, user, forwarded_tasks),
+        "open": await to_task_out_many(
+            db, user, [t for t in forwarded_tasks if t.owner == "human"]
+        ),
         "completed": [],
         "canceled": [],
     }

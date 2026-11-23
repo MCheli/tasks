@@ -57,7 +57,11 @@ async def lifespan(_app: FastAPI):
         await ensure_test_user()
     except Exception as exc:  # noqa: BLE001
         logger.warning("Seed step skipped: %s", exc)
-    yield
+    # The MCP transport's session manager lives as long as the app does.
+    from app.mcp import mount as _mcp_mount  # noqa: WPS433
+
+    async with _mcp_mount.lifespan():
+        yield
     await engine.dispose()
 
 
@@ -142,6 +146,12 @@ try:
     app.include_router(_api_keys_router.router, prefix="/api/api-keys", tags=["api-keys"])
 except Exception as _exc:  # noqa: BLE001  -- catch ImportError AND submodule errors
     logger.info("API keys router not loaded: %s", _exc)
+
+# MCP connector (/mcp + OAuth endpoints + .well-known), ahead of the SPA catch-all. Only when
+# TASKS_PUBLIC_URL is set and this isn't the demo (see app/mcp/mount.py).
+from app.mcp import mount as _mcp_mount  # noqa: E402
+
+_mcp_mount.install(app)
 
 
 # Static frontend (production build copied to /app/static by Dockerfile).

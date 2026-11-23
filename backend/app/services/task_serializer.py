@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.task import Task
+from app.models.task import Task, TaskNote
 from app.models.user import User
 from app.schemas.task import TaskOut
 
@@ -27,7 +27,7 @@ async def calculate_push_forward_count(
     return max(0, int(n or 0) - 1)
 
 
-def _task_to_dict(task: Task, push_forward_count: int) -> dict:
+def _task_to_dict(task: Task, push_forward_count: int, note_count: int) -> dict:
     return {
         "id": task.id,
         "persistent_task_id": task.persistent_task_id,
@@ -39,6 +39,11 @@ def _task_to_dict(task: Task, push_forward_count: int) -> dict:
         "status": task.status,
         "position": task.position,
         "push_forward_count": push_forward_count,
+        "owner": task.owner,
+        "source": task.source,
+        "link": task.link,
+        "agent_status": task.agent_status,
+        "note_count": note_count,
         "created_at": task.created_at,
         "updated_at": task.updated_at,
         "completed_at": task.completed_at,
@@ -46,28 +51,54 @@ def _task_to_dict(task: Task, push_forward_count: int) -> dict:
     }
 
 
-async def to_task_out(db: AsyncSession, user: User, task: Task) -> TaskOut:
-    pf = await calculate_push_forward_count(db, user.id, task.persistent_task_id)
-    return TaskOut.model_validate(_task_to_dict(task, pf))
-
-
-async def to_task_out_many(db: AsyncSession, user: User, tasks: list[Task]) -> list[TaskOut]:
-    """Bulk variant — one COUNT query for all persistent_task_ids."""
-    if not tasks:
-        return []
-    pids = list({t.persistent_task_id for t in tasks})
+async def _lineage_counts(
+    db: AsyncSession, user_id: UUID, pids: list[UUID]
+) -> tuple[dict[UUID, int], dict[UUID, int]]:
+    """Push-forward counts and note counts per lineage, two grouped queries."""
+    forwards: dict[UUID, int] = defaultdict(int)
+    notes: dict[UUID, int] = defaultdict(int)
+    if not pids:
+        return forwards, notes
     rows = (
         await db.execute(
             select(Task.persistent_task_id, func.count(Task.id))
             .where(
-                Task.user_id == user.id,
+                Task.user_id == user_id,
                 Task.persistent_task_id.in_(pids),
                 Task.deleted_at.is_(None),
             )
             .group_by(Task.persistent_task_id)
         )
     ).all()
-    counts: dict[UUID, int] = defaultdict(int)
     for pid, n in rows:
-        counts[pid] = max(0, int(n) - 1)
-    return [TaskOut.model_validate(_task_to_dict(t, counts[t.persistent_task_id])) for t in tasks]
+        forwards[pid] = max(0, int(n) - 1)
+    note_rows = (
+        await db.execute(
+            select(TaskNote.persistent_task_id, func.count(TaskNote.id))
+            .where(TaskNote.user_id == user_id, TaskNote.persistent_task_id.in_(pids))
+            .group_by(TaskNote.persistent_task_id)
+        )
+    ).all()
+    for pid, n in note_rows:
+        notes[pid] = int(n)
+    return forwards, notes
+
+
+async def to_task_out(db: AsyncSession, user: User, task: Task) -> TaskOut:
+    forwards, notes = await _lineage_counts(db, user.id, [task.persistent_task_id])
+    pid = task.persistent_task_id
+    return TaskOut.model_validate(_task_to_dict(task, forwards[pid], notes[pid]))
+
+
+async def to_task_out_many(db: AsyncSession, user: User, tasks: list[Task]) -> list[TaskOut]:
+    """Bulk variant — one COUNT query per derived field for all persistent_task_ids."""
+    if not tasks:
+        return []
+    pids = list({t.persistent_task_id for t in tasks})
+    forwards, notes = await _lineage_counts(db, user.id, pids)
+    return [
+        TaskOut.model_validate(
+            _task_to_dict(t, forwards[t.persistent_task_id], notes[t.persistent_task_id])
+        )
+        for t in tasks
+    ]

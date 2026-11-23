@@ -84,17 +84,38 @@ function fmtDate(iso) {
 const baseUrl = computed(() => `${window.location.origin}/api`)
 const docsUrl = computed(() => `${window.location.origin}/api/docs`)
 
+const mcpUrl = computed(() => `${window.location.origin}/mcp`)
+
 const endpoints = [
   { method: 'GET', path: '/api/auth/me', summary: 'Current authenticated user' },
   { method: 'GET', path: '/api/cycles?category=personal', summary: 'List cycles in a category' },
-  { method: 'GET', path: '/api/cycles/current?category=personal', summary: 'Current open cycle' },
+  {
+    method: 'GET',
+    path: '/api/cycles/current?category=personal&owner=human',
+    summary: 'Current open cycle; owner = human (default), agent or all',
+  },
   { method: 'POST', path: '/api/cycles/transition', summary: 'End current cycle and start a new one' },
-  { method: 'POST', path: '/api/tasks', summary: 'Create a task in the current cycle' },
-  { method: 'GET', path: '/api/tasks/{task_id}', summary: 'Fetch a task with its lineage' },
-  { method: 'PATCH', path: '/api/tasks/{task_id}', summary: 'Update title, notes, or status' },
+  {
+    method: 'GET',
+    path: '/api/tasks?category=&owner=&status=&q=&include_done=',
+    summary: 'Flat list across the current cycles, filtered',
+  },
+  { method: 'GET', path: '/api/tasks/overview', summary: 'All four lists (personal/professional × mine/agents) in one call' },
+  {
+    method: 'POST',
+    path: '/api/tasks',
+    summary: 'Create a task; owner defaults to human. Agent items take source, link, agent_status',
+  },
+  { method: 'GET', path: '/api/tasks/{task_id}', summary: 'Fetch a task with its lineage and notes log' },
+  {
+    method: 'PATCH',
+    path: '/api/tasks/{task_id}',
+    summary: 'Update title, notes, status, source, link or agent_status (open/in_progress/blocked/done)',
+  },
+  { method: 'POST', path: '/api/tasks/{task_id}/notes', summary: 'Append a timestamped note (body, author)' },
   { method: 'POST', path: '/api/tasks/{task_id}/reorder', summary: 'Move a task to a new position' },
   { method: 'DELETE', path: '/api/tasks/{task_id}', summary: 'Soft-delete a task lineage' },
-  { method: 'GET', path: '/api/history?category=personal', summary: 'Cycle + task lineage history' },
+  { method: 'GET', path: '/api/history?category=personal&owner=human', summary: 'Cycle + task lineage history' },
   { method: 'GET', path: '/api/api-keys', summary: 'List your API keys' },
   { method: 'POST', path: '/api/api-keys', summary: 'Create a new API key' },
   { method: 'DELETE', path: '/api/api-keys/{key_id}', summary: 'Revoke an API key' },
@@ -313,6 +334,28 @@ onMounted(loadKeys)
             Authenticate with the
             <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header. Each key
             grants full read/write access to its owner's tasks and cycles.
+          </p>
+        </div>
+
+        <div
+          class="bg-white border border-gray-200 rounded-xl p-5"
+          data-testid="mcp-reference"
+        >
+          <h3 class="text-sm font-semibold text-gray-900 mb-2">
+            Claude connector (MCP)
+          </h3>
+          <code class="block text-xs font-mono px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">{{ mcpUrl }}</code>
+          <p class="text-[11px] text-gray-500 mt-2">
+            Add it in claude.ai under Settings → Connectors → Add custom connector, then sign in
+            with Google. Scheduled jobs can call it with an API key as a Bearer token instead.
+            Tools: <code class="bg-gray-100 px-1 rounded">list_tasks</code>,
+            <code class="bg-gray-100 px-1 rounded">get_task</code>,
+            <code class="bg-gray-100 px-1 rounded">create_task</code>,
+            <code class="bg-gray-100 px-1 rounded">update_task</code>,
+            <code class="bg-gray-100 px-1 rounded">complete_task</code>,
+            <code class="bg-gray-100 px-1 rounded">reopen_task</code>,
+            <code class="bg-gray-100 px-1 rounded">add_note</code>. Items created through it land
+            on the agents' list unless asked otherwise.
           </p>
         </div>
 
