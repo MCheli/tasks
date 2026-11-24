@@ -375,6 +375,24 @@ The app is also a remote MCP server (streamable HTTP, stateless, JSON responses)
 
 **Tools.** `list_tasks(list, owner, status, query, include_done, limit)`, `get_task(task)`, `create_task(title, list, owner="agent", status, source, link, notes)`, `update_task(task, title, status, source, link, notes)`, `complete_task(task, note)`, `reopen_task(task, note)`, `add_note(task, body, author)`. `task` is an id or a `#number`. Output is compact JSON (`id, number, title, list, owner, status, source, link, notes, note_count, updated_at`; `notes_log` on get_task/add_note). There is no delete tool.
 
+## Command-line helper (`scripts/tasks-agent`)
+
+For agents with a shell but no MCP connector (Claude Code sessions on the Mac mini, scripts). One Python 3 file, standard library only; installed on the Mac mini as `~/.local/bin/tasks-agent`. It talks to the REST API above with `X-API-Key`: the key comes from `TASKS_API_KEY`, else `agent-op read "$TASKS_API_KEY_OP_REF"` (default `op://Agents/Tasks API key/credential`); `TASKS_URL` overrides `https://tasks.markcheli.com`. It never prints the key; a 401 prints `auth failed`.
+
+Defaults are `--list personal` and the agent list. A task is `#123`, `123` or a UUID, looked up among the current cycle's items of the chosen list.
+
+```
+tasks-agent list [--status S] [--query Q] [--all-owners] [--include-done] [--json]
+tasks-agent find QUERY                       # open agent items matching title/notes/source/link
+tasks-agent create TITLE --source S [--link URL] [--notes TEXT] [--status open|in_progress|blocked] [--if-missing]
+tasks-agent update REF [--status open|in_progress|blocked|done] [--title T] [--link URL] [--source S]
+tasks-agent note REF BODY [--author A]
+tasks-agent done REF [--note BODY] [--author A]
+tasks-agent get REF                          # item plus its notes log
+```
+
+`--if-missing` prints the open agent item with the same title (case-insensitive) or the same link and exits 0 instead of creating a duplicate. Output is one line per item, `#N [status] title (source) link`; `--json` gives the API's JSON. Errors are one line on stderr with exit code 1. Tests: `python3 -m unittest discover -s tests/scripts` (run in CI).
+
 ## Rate Limiting
 
 Out of scope for v1. Add if/when needed.
