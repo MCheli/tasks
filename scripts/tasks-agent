@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+"""tasks-agent: file and update agent follow-up items in Mark's Tasks app.
+
+Standard library only. Defaults: --list personal, owner agent.
+
+  tasks-agent list [--status S] [--query Q] [--all-owners] [--include-done] [--json]
+  tasks-agent find QUERY
+  tasks-agent create TITLE --source S [--link URL] [--notes TEXT] [--status S] [--if-missing]
+  tasks-agent update REF [--status S] [--title T] [--link URL] [--source S]
+  tasks-agent note REF BODY [--author A]
+  tasks-agent done REF [--note BODY] [--author A]
+  tasks-agent get REF
+
+REF is "#123", "123" (the display number) or a task UUID; it is looked up in the chosen list
+only. Environment: TASKS_URL (default https://tasks.markcheli.com), TASKS_API_KEY, else the key
+is read with agent-op from TASKS_API_KEY_OP_REF (default op://Agents/Tasks API key/credential).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from uuid import UUID
+
+DEFAULT_URL = "https://tasks.markcheli.com"
+DEFAULT_OP_REF = "op://Agents/Tasks API key/credential"
+AGENT_OP = os.path.expanduser("~/.local/bin/agent-op")
+AGENT_STATUSES = ("open", "in_progress", "blocked", "done")
+LIST_LIMIT = 500
+USER_AGENT = "tasks-agent/1.0"
+
+
+class CliError(Exception):
+    """A one-line error for the user; exits non-zero."""
+
+
+# ---------------------------------------------------------------------------
+# HTTP
+# ---------------------------------------------------------------------------
+
+
+def api_key() -> str:
+    key = os.environ.get("TASKS_API_KEY")
+    if key:
+        return key.strip()
+    ref = os.environ.get("TASKS_API_KEY_OP_REF", DEFAULT_OP_REF)
+    try:
+        out = subprocess.run(
+            [AGENT_OP, "read", ref], capture_output=True, text=True, timeout=60, check=False
+        )
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise CliError(f"could not run agent-op ({type(e).__name__})") from None
+    if out.returncode != 0 or not out.stdout.strip():
+        raise CliError("could not read the API key with agent-op")
+    return out.stdout.strip()
+
+
+class Client:
+    def __init__(self, base_url: str, key_fn=api_key):
+        self.base_url = base_url.rstrip("/")
+        self._key_fn = key_fn
+        self._key: str | None = None
+
+    def request(self, method: str, path: str, params: dict | None = None, body=None):
+        if self._key is None:
+            self._key = self._key_fn()
+        url = self.base_url + path
+        if params:
+            clean = {k: v for k, v in params.items() if v is not None}
+            url += "?" + urllib.parse.urlencode(clean)
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(url, data=data, method=method)
+        req.add_header("X-API-Key", self._key)
+        req.add_header("Accept", "application/json")
+        # Cloudflare's bot rules reject urllib's default "Python-urllib/3.x".
+        req.add_header("User-Agent", USER_AGENT)
+        if data is not None:
+            req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read()
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise CliError("auth failed") from None
+            raise CliError(f"{method} {path}: HTTP {e.code} {_detail(e)}".rstrip()) from None
+        except urllib.error.URLError as e:
+            raise CliError(f"{method} {path}: {e.reason}") from None
+        return json.loads(raw) if raw else None
+
+
+def _detail(e: urllib.error.HTTPError) -> str:
+    try:
+        payload = json.loads(e.read() or b"{}")
+    except ValueError:
+        return ""
+    detail = payload.get("detail") if isinstance(payload, dict) else None
+    if isinstance(detail, dict):
+        detail = detail.get("message") or detail.get("code")
+    if isinstance(detail, list):
+        detail = "; ".join(str(d.get("msg", d)) for d in detail if isinstance(d, dict))
+    return str(detail)[:200] if detail else ""
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def parse_ref(ref: str) -> tuple[str, str]:
+    """("uuid", id) or ("number", n) for "#123", "123" or a UUID."""
+    s = ref.strip()
+    if re.fullmatch(r"#?\d+", s):
+        return "number", s.lstrip("#")
+    try:
+        return "uuid", str(UUID(s))
+    except ValueError:
+        raise CliError(f"'{ref}' is neither a #number nor a task id") from None
+
+
+def list_tasks(client: Client, category: str, owner: str = "agent", **params) -> list[dict]:
+    query = {"category": category, "owner": owner, "limit": LIST_LIMIT}
+    for k, v in params.items():
+        if v is None or v is False:
+            continue
+        query[k] = "true" if v is True else v
+    return client.request("GET", "/api/tasks", query)["tasks"]
+
+
+def resolve(client: Client, category: str, ref: str) -> dict:
+    """The current-cycle task in this list with that #number or id (either owner)."""
+    kind, value = parse_ref(ref)
+    for t in list_tasks(client, category, owner="all", include_done=True):
+        if kind == "number" and str(t["display_id"]) == value:
+            return t
+        if kind == "uuid" and value in (t["id"], t["persistent_task_id"]):
+            return t
+    raise CliError(f"task {ref} not found in the {category} list")
+
+
+def status_of(t: dict) -> str:
+    return t.get("agent_status") or t["status"]
+
+
+def fmt(t: dict) -> str:
+    line = f"#{t['display_id']} [{status_of(t)}] {t['title']}"
+    if t.get("source"):
+        line += f" ({t['source']})"
+    if t.get("link"):
+        line += f" {t['link']}"
+    return line
+
+
+def status_fields(t: dict, status: str) -> dict:
+    """PATCH fields that put this task in the given state."""
+    if t["owner"] == "agent":
+        return {"agent_status": status}
+    return {"status": "completed" if status == "done" else "open"}
+
+
+def emit(args, payload, tasks: list[dict]) -> None:
+    if args.json:
+        print(json.dumps(payload, indent=2))
+    elif not tasks:
+        print("no items")
+    else:
+        for t in tasks:
+            print(fmt(t))
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+
+def cmd_list(client, args):
+    tasks = list_tasks(
+        client,
+        args.list,
+        owner="all" if args.all_owners else "agent",
+        status=args.status,
+        q=args.query,
+        include_done=args.include_done,
+    )
+    emit(args, tasks, tasks)
+
+
+def cmd_find(client, args):
+    tasks = list_tasks(client, args.list, q=args.query)
+    emit(args, tasks, tasks)
+
+
+def find_existing(client, category: str, title: str, link: str | None) -> dict | None:
+    """An open agent item with the same title (case-insensitive) or the same link."""
+    for t in list_tasks(client, category, q=title[:200]):
+        if t["title"].strip().casefold() == title.strip().casefold():
+            return t
+    if link:
+        for t in list_tasks(client, category, q=link[:200]):
+            if t.get("link") == link:
+                return t
+    return None
+
+
+def cmd_create(client, args):
+    if args.if_missing:
+        existing = find_existing(client, args.list, args.title, args.link)
+        if existing:
+            if args.json:
+                print(json.dumps({"existing": True, "task": existing}, indent=2))
+            else:
+                print(f"exists: {fmt(existing)}")
+            return
+    body = {
+        "category": args.list,
+        "title": args.title,
+        "owner": "agent",
+        "source": args.source,
+        "agent_status": args.status,
+    }
+    if args.link:
+        body["link"] = args.link
+    if args.notes:
+        body["notes"] = args.notes
+    task = client.request("POST", "/api/tasks", body=body)["task"]
+    emit(args, {"existing": False, "task": task}, [task])
+
+
+def cmd_update(client, args):
+    t = resolve(client, args.list, args.ref)
+    body = {}
+    if args.status:
+        body.update(status_fields(t, args.status))
+    for field in ("title", "link", "source"):
+        if getattr(args, field) is not None:
+            body[field] = getattr(args, field)
+    if not body:
+        raise CliError("nothing to update (give --status, --title, --link or --source)")
+    task = client.request("PATCH", f"/api/tasks/{t['id']}", body=body)["task"]
+    emit(args, task, [task])
+
+
+def add_note(client, t: dict, body: str, author: str | None) -> dict:
+    payload = {"body": body}
+    if author:
+        payload["author"] = author
+    return client.request("POST", f"/api/tasks/{t['id']}/notes", body=payload)
+
+
+def cmd_note(client, args):
+    t = resolve(client, args.list, args.ref)
+    res = add_note(client, t, args.body, args.author)
+    emit(args, res, [res["task"]])
+
+
+def cmd_done(client, args):
+    t = resolve(client, args.list, args.ref)
+    if args.note:
+        add_note(client, t, args.note, args.author)
+    task = client.request("PATCH", f"/api/tasks/{t['id']}", body=status_fields(t, "done"))["task"]
+    emit(args, task, [task])
+
+
+def cmd_get(client, args):
+    t = resolve(client, args.list, args.ref)
+    detail = client.request("GET", f"/api/tasks/{t['id']}")
+    if args.json:
+        print(json.dumps(detail, indent=2))
+        return
+    task = detail["task"]
+    print(fmt(task))
+    print(f"id {task['id']}  owner {task['owner']}  updated {task['updated_at']}")
+    if task.get("notes"):
+        print(task["notes"])
+    for n in detail.get("notes_log", []):
+        print(f"- {n['created_at'][:16]} {n['author']}: {n['body']}")
+
+
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+
+
+def build_parser() -> argparse.ArgumentParser:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--list", choices=("personal", "professional"), default="personal")
+    common.add_argument("--json", action="store_true", help="machine-readable output")
+
+    p = argparse.ArgumentParser(
+        prog="tasks-agent", description="Agent follow-up items in the Tasks app."
+    )
+    sub = p.add_subparsers(dest="command", required=True)
+
+    s = sub.add_parser("list", parents=[common], help="list agent items")
+    s.add_argument(
+        "--status", choices=("open", "in_progress", "blocked", "done", "completed", "canceled")
+    )
+    s.add_argument("--query", "-q")
+    s.add_argument("--all-owners", action="store_true", help="include Mark's own items")
+    s.add_argument("--include-done", action="store_true")
+    s.set_defaults(func=cmd_list)
+
+    s = sub.add_parser("find", parents=[common], help="search open agent items")
+    s.add_argument("query")
+    s.set_defaults(func=cmd_find)
+
+    s = sub.add_parser("create", parents=[common], help="create an agent item")
+    s.add_argument("title")
+    s.add_argument("--source", required=True)
+    s.add_argument("--link")
+    s.add_argument("--notes")
+    s.add_argument("--status", choices=("open", "in_progress", "blocked"), default="open")
+    s.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="print an open agent item with the same title or link instead of creating",
+    )
+    s.set_defaults(func=cmd_create)
+
+    s = sub.add_parser("update", parents=[common], help="change an item")
+    s.add_argument("ref")
+    s.add_argument("--status", choices=AGENT_STATUSES)
+    s.add_argument("--title")
+    s.add_argument("--link")
+    s.add_argument("--source")
+    s.set_defaults(func=cmd_update)
+
+    s = sub.add_parser("note", parents=[common], help="append to an item's notes log")
+    s.add_argument("ref")
+    s.add_argument("body")
+    s.add_argument("--author")
+    s.set_defaults(func=cmd_note)
+
+    s = sub.add_parser("done", parents=[common], help="mark an item done")
+    s.add_argument("ref")
+    s.add_argument("--note")
+    s.add_argument("--author")
+    s.set_defaults(func=cmd_done)
+
+    s = sub.add_parser("get", parents=[common], help="show one item with its notes log")
+    s.add_argument("ref")
+    s.set_defaults(func=cmd_get)
+    return p
+
+
+def main(argv: list[str] | None = None, client: Client | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if client is None:
+        client = Client(os.environ.get("TASKS_URL") or DEFAULT_URL)
+    try:
+        args.func(client, args)
+    except CliError as e:
+        print(f"tasks-agent: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
