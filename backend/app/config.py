@@ -85,7 +85,17 @@ class Settings(BaseSettings):
     # Stored as raw str so pydantic-settings doesn't try to JSON-decode it.
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:8000"
 
-    @field_validator("COOKIE_DOMAIN", "DEMO_URL", "ENABLE_DOCS", mode="before")
+    # MCP connector (app/mcp). PUBLIC_URL is the origin claude.ai reaches the app at; it is the
+    # OAuth issuer and the resource identifier (<PUBLIC_URL>/mcp). Unset: the connector and its
+    # OAuth endpoints aren't mounted. MCP_ALLOWED_EMAILS: the Google accounts (comma-separated)
+    # allowed to sign in to the connector; they must also already be users of the app. Empty:
+    # Google sign-in for the connector is refused (API-key bearer tokens still work).
+    PUBLIC_URL: str | None = None
+    MCP_ALLOWED_EMAILS: str = ""
+    MCP_ACCESS_TOKEN_SECONDS: int = 60 * 60
+    MCP_REFRESH_TOKEN_DAYS: int = 30
+
+    @field_validator("COOKIE_DOMAIN", "DEMO_URL", "ENABLE_DOCS", "PUBLIC_URL", mode="before")
     @classmethod
     def _empty_to_none(cls, v):
         if v == "" or v is None:
@@ -95,6 +105,15 @@ class Settings(BaseSettings):
     @property
     def allowed_origins_list(self) -> list[str]:
         return [s.strip() for s in self.ALLOWED_ORIGINS.split(",") if s.strip()]
+
+    @property
+    def mcp_allowed_emails(self) -> frozenset[str]:
+        return frozenset(e.strip().lower() for e in self.MCP_ALLOWED_EMAILS.split(",") if e.strip())
+
+    @property
+    def mcp_enabled(self) -> bool:
+        """The connector is served when the app knows its public URL and isn't the demo."""
+        return bool(self.PUBLIC_URL) and not self.DEMO_MODE
 
     @property
     def is_production(self) -> bool:

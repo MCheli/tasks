@@ -54,7 +54,11 @@ Each row is one task's snapshot *in one cycle*. A task's identity across cycles 
 | `title` | VARCHAR(500) | NOT NULL | |
 | `notes` | TEXT | NULLABLE | Optional longer-form body / links |
 | `status` | VARCHAR(20) | NOT NULL DEFAULT 'open', CHECK IN ('open','completed','canceled') | |
-| `position` | INTEGER | NOT NULL DEFAULT 0 | Lower = higher in list |
+| `position` | INTEGER | NOT NULL DEFAULT 0 | Lower = higher in list, within one owner |
+| `owner` | VARCHAR(10) | NOT NULL DEFAULT 'human', CHECK IN ('human','agent') | Mark's own list vs the agents' follow-up list (2026-11-23) |
+| `source` | VARCHAR(200) | NULLABLE | Agent items: which routine, thread or session made it |
+| `link` | VARCHAR(2000) | NULLABLE | Agent items: PR, repo or URL |
+| `agent_status` | VARCHAR(20) | NULLABLE, CHECK IN ('open','in_progress','blocked','done') | Agent items only; `done` ⇔ `status='completed'` (kept in step by the service) |
 | `created_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
 | `updated_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
 | `completed_at` | TIMESTAMPTZ | NULLABLE | Set when status → 'completed' |
@@ -67,6 +71,26 @@ Indexes:
 - `(user_id, display_id)` — lookup by display ID
 - UNIQUE `(user_id, display_id)` — display IDs are unique per user
 - `(previous_task_id)` — walking the lineage backward
+- `(cycle_id, owner, deleted_at, status)` — one owner's part of a cycle
+
+### `task_notes`
+
+The notes log of a task (2026-11-23): timestamped entries, each with an author. Attached to the lineage (`persistent_task_id`) so it follows a task across cycle transitions. Used mainly by agent items; any task can have one.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK | |
+| `user_id` | UUID | FK → users.id, NOT NULL, ON DELETE CASCADE | |
+| `persistent_task_id` | UUID | NOT NULL | The lineage the note belongs to |
+| `author` | VARCHAR(200) | NOT NULL | Routine/thread/session name, the API key's name, or the user |
+| `body` | TEXT | NOT NULL | |
+| `created_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
+
+Index: `(user_id, persistent_task_id, created_at)`.
+
+### `mcp_oauth_clients`, `mcp_oauth_codes`, `mcp_oauth_tokens`
+
+Storage for the MCP connector's OAuth 2.1 authorization server (`backend/app/mcp/oauth.py`), shared by the uvicorn workers. Clients are claude.ai's dynamic registrations (the RFC 7591 record as JSONB). Codes and tokens are stored as HMAC-SHA256 hashes keyed with `TASKS_API_KEY_PEPPER`; codes are single use (`used_at`), an access/refresh pair shares `pair_id` and is revoked together (`revoked_at`). None of these hold user data beyond `user_id`.
 
 ### `display_id_sequences`
 

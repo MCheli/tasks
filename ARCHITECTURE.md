@@ -199,6 +199,12 @@ Browser
 - **Frontend:** `stores/appConfig.js` loads `/api/auth/config` once; `directives/demoLock.js` disables write controls; `components/DemoBanner.vue` names the persona.
 - The real deployment sets `TASKS_DEMO_URL` so its login page links to the demo.
 
+## Agent list and MCP connector (2026-11-23)
+
+Each list (personal, professional) has two parts, told apart by `tasks.owner`: `human` is Mark's own to-do list and `agent` is the follow-up list that Claude agents keep for their own work (security findings, work underway across threads, things not finished). Agent items carry `source`, `link`, `agent_status` (open / in_progress / blocked / done, with done ⇔ completed) and a notes log (`task_notes`, per lineage). They live in the same cycles as Mark's items but are forwarded on their own at a transition, so he never has to triage them. Every existing read endpoint defaults to `owner=human`.
+
+The app is also a remote MCP server at `/mcp` (`backend/app/mcp/`): the official `mcp` SDK's server with seven tools over the task service, the SDK's OAuth 2.1 authorization-server routes backed by three Postgres tables, Google sign-in through the app's existing OAuth client restricted to `TASKS_MCP_ALLOWED_EMAILS`, and the app's API keys accepted as bearer tokens. The transport runs stateless with JSON responses because the two uvicorn workers share no memory. The routes are added to the FastAPI router ahead of the SPA catch-all; the transport's session manager runs inside the app lifespan. Nothing is mounted without `TASKS_PUBLIC_URL`, and never in demo mode.
+
 ## Data Scoping
 
 Every request that touches user data MUST pass through `get_current_user`, and every query MUST filter by `user_id`. Enforce this in the service layer, not the router. A helper:

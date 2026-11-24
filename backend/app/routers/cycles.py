@@ -21,37 +21,48 @@ from app.services import cycle_service
 router = APIRouter()
 
 CategoryParam = Query(..., pattern="^(personal|professional)$")
+# Mark's own items by default, so clients from before the agent list see what they always did.
+OwnerParam = Query(
+    "human",
+    pattern="^(human|agent|all)$",
+    description="human (default), agent, or all",
+)
 
 
 @router.get("/current", response_model=CycleDetail)
 async def get_current(
     category: str = CategoryParam,
+    owner: str = OwnerParam,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CycleDetail:
     cycle = await cycle_service.get_or_create_current_cycle(db, user, category)
-    return await cycle_service.cycle_detail(db, user, cycle)
+    return await cycle_service.cycle_detail(db, user, cycle, owner)
 
 
 @router.get("", response_model=CycleListResponse)
 async def list_cycles(
     category: str = CategoryParam,
+    owner: str = OwnerParam,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CycleListResponse:
-    return await cycle_service.list_cycles(db, user, category, limit=limit, offset=offset)
+    return await cycle_service.list_cycles(
+        db, user, category, limit=limit, offset=offset, owner=owner
+    )
 
 
 @router.get("/{cycle_id}", response_model=CycleDetail)
 async def get_cycle(
     cycle_id: UUID,
+    owner: str = OwnerParam,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CycleDetail:
     cycle = await cycle_service.get_cycle(db, user, cycle_id)
-    return await cycle_service.cycle_detail(db, user, cycle)
+    return await cycle_service.cycle_detail(db, user, cycle, owner)
 
 
 @router.post(

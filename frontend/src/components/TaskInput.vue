@@ -17,11 +17,17 @@ async function submit() {
   if (!title.value.trim() || submitting.value) return
   submitting.value = true
   try {
-    const { data } = await tasksApi.createTask({
+    const payload = {
       category: cycles.activeCategory,
       title: title.value.trim(),
       notes: notes.value.trim() || null,
-    })
+    }
+    if (cycles.activeOwner === 'agent') {
+      // An item Mark hands to the agents from the app itself.
+      payload.owner = 'agent'
+      payload.source = 'Mark (app)'
+    }
+    const { data } = await tasksApi.createTask(payload)
     cycles.insertTask(data.task)
     title.value = ''
     notes.value = ''
@@ -74,7 +80,13 @@ defineExpose({ focus: () => titleEl.value?.focus() })
       v-model="title"
       v-demo-lock
       type="text"
-      :placeholder="appConfig.demo ? 'Adding tasks isn\'t available in the demo' : 'Add a task…'"
+      :placeholder="
+        appConfig.demo
+          ? 'Adding tasks isn\'t available in the demo'
+          : cycles.activeOwner === 'agent'
+            ? 'Add an item for the agents…'
+            : 'Add a task…'
+      "
       class="w-full bg-transparent border-none focus:outline-none text-sm placeholder-gray-400"
       @focus="expanded = true"
       @keydown="onTitleKey"
