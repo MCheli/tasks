@@ -188,7 +188,9 @@ if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
         candidate = static_file(STATIC_DIR, full_path)
         if candidate:
             return FileResponse(candidate)
-        return FileResponse(STATIC_DIR / "index.html")
+        # Revalidate the page on every load so a Home Screen app picks up a new deploy
+        # (the hashed /assets files it points to can stay cached).
+        return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 else:
     logger.info("Static dir %s missing or empty; SPA not mounted (dev mode).", STATIC_DIR)

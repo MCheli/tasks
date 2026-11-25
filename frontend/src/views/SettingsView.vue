@@ -133,11 +133,11 @@ onMounted(loadKeys)
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-dvh bg-gray-50">
     <header class="sticky top-0 z-10 bg-white border-b border-gray-200">
       <div class="max-w-3xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
         <button
-          class="text-sm text-gray-500 hover:text-gray-700"
+          class="text-sm text-gray-500 hover:text-gray-700 touch:min-h-11"
           @click="router.push('/cycle')"
         >
           ← Back
@@ -156,7 +156,7 @@ onMounted(loadKeys)
       <!-- Tab bar -->
       <div class="flex gap-1 mb-5">
         <button
-          class="px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+          class="px-4 py-2 touch:min-h-11 rounded-lg text-xs font-medium transition-colors"
           :class="activeTab === 'keys'
             ? 'bg-gray-900 text-white'
             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'"
@@ -165,7 +165,7 @@ onMounted(loadKeys)
           API Keys
         </button>
         <button
-          class="px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+          class="px-4 py-2 touch:min-h-11 rounded-lg text-xs font-medium transition-colors"
           :class="activeTab === 'reference'
             ? 'bg-gray-900 text-white'
             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'"
@@ -242,6 +242,10 @@ onMounted(loadKeys)
               v-model="newName"
               type="text"
               placeholder="e.g. raycast-extension"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="done"
               class="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900"
               @keydown.enter="submitCreate"
             >

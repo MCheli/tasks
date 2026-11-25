@@ -19,7 +19,7 @@ const tabs = [
       :key="t.id"
       role="tab"
       :aria-selected="cycles.activeCategory === t.id"
-      class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors"
+      class="px-4 py-1.5 touch:min-h-11 text-sm font-medium rounded-md transition-colors"
       :class="
         cycles.activeCategory === t.id
           ? 'bg-white text-accent-700 shadow-sm'

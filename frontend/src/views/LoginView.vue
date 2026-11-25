@@ -176,7 +176,7 @@ function googleLogin() {
           <button
             v-if="appConfig.googleConfigured"
             type="button"
-            class="mt-6 w-full inline-flex items-center justify-center gap-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="mt-6 w-full inline-flex items-center justify-center gap-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 touch:min-h-11 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             @click="googleLogin"
           >
             <!-- Google "G" mark — official multi-color SVG. -->
@@ -244,7 +244,7 @@ function googleLogin() {
             <button
               type="submit"
               :disabled="submitting"
-              class="w-full rounded-lg bg-accent-500 text-white px-4 py-2.5 text-sm font-medium hover:bg-accent-600 transition-colors disabled:opacity-60"
+              class="w-full rounded-lg bg-accent-500 text-white px-4 py-2.5 touch:min-h-11 text-sm font-medium hover:bg-accent-600 transition-colors disabled:opacity-60"
             >
               {{ submitting ? 'Signing in…' : 'Sign in' }}
             </button>

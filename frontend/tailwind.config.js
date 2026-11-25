@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{vue,js}'],
@@ -19,5 +21,8 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // touch:… applies on touch screens (phones, tablets), whatever their width.
+    plugin(({ addVariant }) => addVariant('touch', '@media (pointer: coarse)')),
+  ],
 }

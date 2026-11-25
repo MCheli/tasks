@@ -121,14 +121,14 @@ async function deleteTask() {
 
 <template>
   <div
-    class="group relative flex items-start gap-3 px-3 py-2.5 bg-white border-b border-gray-100"
+    class="group relative flex items-start gap-3 px-3 py-2.5 touch:py-3.5 bg-white border-b border-gray-100"
     :class="{ 'opacity-70': task.status === 'completed', 'opacity-50': task.status === 'canceled' }"
     data-testid="agent-task"
   >
     <!-- Done toggle -->
     <button
       v-demo-lock
-      class="mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs"
+      class="relative mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs touch:before:absolute touch:before:-inset-3.5 touch:before:content-['']"
       :class="{
         'bg-green-500 text-white': task.status === 'completed',
         'bg-gray-300 text-white': task.status === 'canceled',
@@ -150,7 +150,7 @@ async function deleteTask() {
       <div class="flex items-start gap-2">
         <span class="text-[11px] font-mono text-gray-400 pt-0.5">#{{ task.display_id }}</span>
         <span
-          class="text-sm break-words flex-1"
+          class="min-w-0 text-sm break-words flex-1"
           :class="{ 'line-through': task.status !== 'open' }"
         >{{ task.title }}</span>
         <span
@@ -208,7 +208,7 @@ async function deleteTask() {
             v-demo-lock
             role="radio"
             :aria-checked="shownStatus === s"
-            class="px-2.5 py-1 rounded-md font-medium transition-colors"
+            class="px-2.5 py-1 touch:min-h-11 rounded-md font-medium transition-colors"
             :class="
               shownStatus === s
                 ? 'bg-white shadow-sm text-gray-900'
@@ -223,7 +223,7 @@ async function deleteTask() {
         <button
           v-else-if="!readonly"
           v-demo-lock
-          class="text-xs px-2 py-1 text-gray-500 hover:bg-gray-100 rounded"
+          class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:bg-gray-100 rounded"
           @click="setStatus('open')"
         >
           Reopen
@@ -276,6 +276,7 @@ async function deleteTask() {
               rows="2"
               maxlength="20000"
               placeholder="Add a note…"
+              autocapitalize="sentences"
               class="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-accent-500"
               @keydown.enter.meta.prevent="submitNote"
               @keydown.enter.ctrl.prevent="submitNote"
@@ -283,7 +284,7 @@ async function deleteTask() {
             <button
               v-demo-lock
               type="submit"
-              class="text-xs px-3 py-1.5 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
+              class="text-xs px-3 py-1.5 touch:min-h-11 rounded bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
               :disabled="!noteText.trim() || addingNote"
             >
               {{ addingNote ? 'Adding…' : 'Add note' }}
@@ -298,7 +299,7 @@ async function deleteTask() {
           <button
             v-if="!readonly"
             v-demo-lock
-            class="ml-auto text-gray-500 hover:text-red-600"
+            class="ml-auto text-gray-500 hover:text-red-600 touch:min-h-11 touch:px-3"
             @click="deleteTask"
           >
             Delete…
