@@ -42,6 +42,8 @@ playwright-report/
 test-results/
 .last-run.json
 .playwright-mcp/
+# iPhone QA screenshots (e2e/scripts/mobile-qa.mjs)
+.mobile-qa/
 *.png
 !docs/screenshots/*.png
 !docs/screenshots/**/*.png

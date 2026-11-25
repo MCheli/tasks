@@ -15,7 +15,7 @@ const cycles = useCyclesStore()
       role="tab"
       data-testid="owner-human"
       :aria-selected="cycles.activeOwner === 'human'"
-      class="px-3 py-1 rounded-md font-medium transition-colors"
+      class="px-3 py-1 touch:min-h-11 rounded-md font-medium transition-colors"
       :class="
         cycles.activeOwner === 'human'
           ? 'bg-white text-gray-900 shadow-sm'
@@ -29,7 +29,7 @@ const cycles = useCyclesStore()
       role="tab"
       data-testid="owner-agent"
       :aria-selected="cycles.activeOwner === 'agent'"
-      class="px-3 py-1 rounded-md font-medium transition-colors inline-flex items-center gap-1.5"
+      class="px-3 py-1 touch:min-h-11 rounded-md font-medium transition-colors inline-flex items-center gap-1.5"
       :class="
         cycles.activeOwner === 'agent'
           ? 'bg-white text-gray-900 shadow-sm'

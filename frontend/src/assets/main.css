@@ -5,9 +5,19 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* App feel on phones: no double-tap zoom, no whole-page rubber band, no grey tap flash. */
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
+    overscroll-behavior: none;
+    /* Landscape iPhone: keep content out from under the notch / Dynamic Island. */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   button:focus-visible,
   a:focus-visible,
@@ -21,6 +31,16 @@
   input[type='checkbox'] {
     touch-action: manipulation;
   }
+  /* App chrome is not text to select or long-press; content stays selectable. */
+  header,
+  button,
+  [role='tab'],
+  [role='radio'],
+  .drag-handle {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 }
 
 @layer components {
@@ -33,5 +53,33 @@
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (pointer: coarse) {
+  /* iOS zooms into any field under 16px when it is focused. */
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Keyboard shortcut hints mean nothing on a phone. */
+  .kbd-hint {
+    display: none !important;
+  }
+  /* A pressed state in place of the tap highlight. */
+  button:not(:disabled),
+  [role='tab'],
+  a[href] {
+    transition: opacity 80ms ease-out;
+  }
+  button:not(:disabled):active,
+  [role='tab']:active,
+  a[href]:active {
+    opacity: 0.6;
   }
 }

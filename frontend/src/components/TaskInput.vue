@@ -80,6 +80,8 @@ defineExpose({ focus: () => titleEl.value?.focus() })
       v-model="title"
       v-demo-lock
       type="text"
+      enterkeyhint="done"
+      autocapitalize="sentences"
       :placeholder="
         appConfig.demo
           ? 'Adding tasks isn\'t available in the demo'
@@ -101,24 +103,25 @@ defineExpose({ focus: () => titleEl.value?.focus() })
         rows="2"
         maxlength="20000"
         placeholder="Notes (optional)"
+        autocapitalize="sentences"
         class="w-full text-sm border border-gray-200 rounded p-2 resize-none focus:outline-none focus:border-accent-500"
         @keydown="onNotesKey"
       />
       <div class="flex items-center justify-between">
-        <p class="text-[10px] uppercase tracking-wide text-gray-400">
+        <p class="kbd-hint text-[10px] uppercase tracking-wide text-gray-400">
           Enter to save · Shift+Enter for notes · Esc to cancel
         </p>
-        <div class="flex gap-2">
+        <div class="ml-auto flex gap-2">
           <button
             type="button"
-            class="px-3 py-1 text-xs text-gray-500 hover:text-gray-700"
+            class="px-3 py-1 touch:min-h-11 text-xs text-gray-500 hover:text-gray-700"
             @click="collapse"
           >
             Cancel
           </button>
           <button
             type="button"
-            class="px-3 py-1 text-xs rounded bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
+            class="px-3 py-1 touch:min-h-11 touch:px-5 text-xs rounded bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
             :disabled="!title.trim() || submitting"
             @click="submit"
           >

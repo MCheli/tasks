@@ -75,16 +75,16 @@ const cycleStartedRel = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-dvh bg-gray-50">
     <header class="sticky top-0 z-10 bg-white border-b border-gray-200">
-      <div class="max-w-2xl mx-auto flex items-center justify-between gap-3 px-3 py-2">
+      <div class="max-w-2xl mx-auto flex items-center justify-between gap-3 px-3 py-1">
         <h1 class="text-base font-semibold">
           Tasks
         </h1>
         <TabSwitcher class="hidden sm:flex" />
         <div class="flex items-center gap-1">
           <button
-            class="p-2 text-gray-500 hover:text-gray-700 rounded"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
             title="History"
             aria-label="History"
             @click="router.push('/history')"
@@ -92,7 +92,7 @@ const cycleStartedRel = computed(() => {
             <span aria-hidden="true">🕐</span>
           </button>
           <button
-            class="p-2 text-gray-500 hover:text-gray-700 rounded"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
             title="Settings"
             aria-label="Settings"
             @click="router.push('/settings')"
@@ -100,7 +100,7 @@ const cycleStartedRel = computed(() => {
             <span aria-hidden="true">⚙︎</span>
           </button>
           <button
-            class="p-2 text-gray-500 hover:text-gray-700 rounded text-xs"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
             title="Sign out"
             aria-label="Sign out"
             @click="logout"
@@ -115,12 +115,12 @@ const cycleStartedRel = computed(() => {
       </div>
     </header>
 
-    <main class="max-w-2xl mx-auto p-4 pb-32">
+    <main class="max-w-2xl mx-auto p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-32">
       <!-- Mine / Agents + meta line -->
       <div class="flex items-center justify-between gap-3 mb-3">
         <OwnerSwitcher />
         <button
-          class="text-xs text-gray-500 hover:text-gray-700 text-right"
+          class="text-xs text-gray-500 hover:text-gray-700 text-right touch:min-h-11"
           :title="cycles.showResolved ? 'Hide done/canceled' : 'Show done/canceled'"
           @click="cycles.toggleShowResolved"
         >
@@ -186,9 +186,10 @@ const cycleStartedRel = computed(() => {
           v-else
           class="bg-white rounded-lg border border-gray-200 px-4 py-8 text-center text-sm text-gray-400"
         >
-          No open tasks. Add one above — or press
-          <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
-          to focus the input.
+          No open tasks. Add one above<span class="kbd-hint">
+            — or press
+            <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
+            to focus the input</span>.
         </div>
       </template>
 
@@ -273,24 +274,22 @@ const cycleStartedRel = computed(() => {
       >
         {{ cycles.error }}
       </p>
-    </main>
 
-    <!-- Start New Cycle button -->
-    <div class="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:right-6 sm:left-auto safe-bottom">
-      <div class="sm:hidden bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-6 px-4 pb-4">
-        <button
-          class="w-full bg-accent-500 text-white px-6 py-3 rounded-lg shadow-md font-medium hover:bg-accent-600"
-          @click="router.push('/cycle/transition')"
-        >
-          Start New Cycle
-        </button>
-      </div>
+      <!-- Phones: Start New Cycle sits after the list, so it never covers a task. -->
       <button
-        class="hidden sm:block bg-accent-500 text-white px-5 py-2.5 rounded-full shadow-lg font-medium hover:bg-accent-600"
+        class="sm:hidden mt-8 w-full bg-accent-500 text-white px-6 py-3 rounded-lg shadow-md font-medium hover:bg-accent-600"
         @click="router.push('/cycle/transition')"
       >
         Start New Cycle
       </button>
-    </div>
+    </main>
+
+    <!-- Wider screens: a floating Start New Cycle button -->
+    <button
+      class="hidden sm:block fixed bottom-6 right-6 bg-accent-500 text-white px-5 py-2.5 rounded-full shadow-lg font-medium hover:bg-accent-600"
+      @click="router.push('/cycle/transition')"
+    >
+      Start New Cycle
+    </button>
   </div>
 </template>

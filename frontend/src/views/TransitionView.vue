@@ -76,11 +76,11 @@ function cancel() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-dvh bg-gray-50">
     <header class="sticky top-0 z-10 bg-white border-b border-gray-200">
       <div class="max-w-2xl mx-auto px-3 py-2 flex items-center justify-between gap-3">
         <button
-          class="text-sm text-gray-500 hover:text-gray-700"
+          class="text-sm text-gray-500 hover:text-gray-700 touch:min-h-11"
           @click="cancel"
         >
           ← Cancel
@@ -97,7 +97,7 @@ function cancel() {
       </div>
     </header>
 
-    <main class="max-w-2xl mx-auto p-4 pb-32">
+    <main class="max-w-2xl mx-auto p-4 pb-[calc(8rem+env(safe-area-inset-bottom))]">
       <p
         v-if="appConfig.demo"
         class="mb-3 text-xs text-gray-500"
@@ -131,7 +131,7 @@ function cancel() {
           class="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0 border-gray-100"
         >
           <button
-            class="flex-shrink-0 w-9 h-9 rounded-md flex items-center justify-center font-bold transition-colors"
+            class="flex-shrink-0 w-9 h-9 touch:w-11 touch:h-11 rounded-md flex items-center justify-center font-bold transition-colors"
             :class="COLORS[actions[task.persistent_task_id] || 'forward']"
             :aria-label="`Action for task ${task.display_id}: ${LABELS[actions[task.persistent_task_id] || 'forward']}`"
             :title="LABELS[actions[task.persistent_task_id] || 'forward']"
@@ -142,7 +142,7 @@ function cancel() {
           <div class="flex-1 min-w-0 pt-1">
             <div class="flex items-baseline gap-2">
               <span class="text-[11px] font-mono text-gray-400">#{{ task.display_id }}</span>
-              <span class="text-sm break-words">{{ task.title }}</span>
+              <span class="min-w-0 text-sm break-words">{{ task.title }}</span>
             </div>
             <p
               v-if="task.notes"
