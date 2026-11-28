@@ -61,6 +61,7 @@ All variables use the `TASKS_` prefix. The app reads them via pydantic-settings.
 | `TASKS_DEMO_URL` | no | Real deployment: the public demo's URL; the login page shows a "Try the live demo" card. | `https://tasks-demo.markcheli.com` |
 | `TASKS_PUBLIC_URL` | for the connector | The origin the app is reached at. Turns on the MCP connector at `<url>/mcp` and its OAuth endpoints (it is the OAuth issuer and the resource id). Unset: no connector. Never set on the demo. | `https://tasks.markcheli.com` |
 | `TASKS_MCP_ALLOWED_EMAILS` | for the connector | Comma-separated Google accounts allowed to sign the connector in (they must also be users of the app). The compose file takes it from `HOMELAB_MCP_ALLOWED_EMAILS`, the same allowlist homelab-mcp uses. Empty: connector sign-in is refused; API-key bearer tokens still work. | _(from .env)_ |
+| `TASKS_MCP_REDIRECT_HOSTS` | no | Comma-separated hosts a connector's OAuth redirect URI may use (https; loopback may use http). Registration and sign-in are refused for any other host. | `claude.ai,claude.com,localhost,127.0.0.1` |
 | `TASKS_MCP_ACCESS_TOKEN_SECONDS` / `TASKS_MCP_REFRESH_TOKEN_DAYS` | no | Connector token lifetimes. Defaults 3600 and 30. | |
 | `TASKS_DEMO_MODE` | demo only | `true` makes this deployment the read-only public demo. Never set on the real one. | `true` |
 | `TASKS_DEMO_USER_EMAIL` | no | Demo persona. Must end in `@tasks.dev`. Default `claudius@tasks.dev`. | _(default)_ |

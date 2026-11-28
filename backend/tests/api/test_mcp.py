@@ -602,6 +602,72 @@ async def test_authorize_refuses_unregistered_redirect_uri(mcp_client, google_en
     assert r.json()["error"] == "invalid_request"
 
 
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "https://evil.example/cb",
+        "http://claude.ai/api/mcp/auth_callback",
+        "https://claude.ai.evil.example/cb",
+    ],
+)
+async def test_registration_refuses_redirect_hosts_not_on_the_list(mcp_client, uri):
+    r = await mcp_client.post(
+        "/register",
+        json={
+            "client_name": "Claude",
+            "redirect_uris": [CLAUDE_CALLBACK, uri],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "client_secret_post",
+        },
+    )
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "invalid_redirect_uri"
+
+
+async def test_registration_accepts_a_loopback_redirect(mcp_client):
+    r = await mcp_client.post(
+        "/register",
+        json={
+            "client_name": "Claude Code",
+            "redirect_uris": ["http://localhost:53682/callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        },
+    )
+    assert r.status_code == 201, r.text
+
+
+async def test_authorize_refuses_a_redirect_host_taken_off_the_list(
+    mcp_client, google_env, monkeypatch
+):
+    from app.config import settings
+
+    reg = await _register(mcp_client)
+    monkeypatch.setattr(settings, "MCP_REDIRECT_HOSTS", "localhost")
+    _verifier, challenge = _pkce()
+    r = await mcp_client.get(
+        "/authorize",
+        params={
+            "response_type": "code",
+            "client_id": reg["client_id"],
+            "redirect_uri": CLAUDE_CALLBACK,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "state": "s",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code in (302, 400), r.text
+    if r.status_code == 302:
+        target = urlparse(r.headers["location"])
+        assert target.netloc != "accounts.google.com"
+        assert parse_qs(target.query)["error"] == ["invalid_request"]
+    else:
+        assert r.json()["error"] == "invalid_request"
+
+
 async def test_mcp_state_does_not_disturb_normal_google_login(client, monkeypatch):
     """A callback without our state goes through the ordinary Authlib path (and fails as before)."""
     from authlib.integrations.base_client.errors import MismatchingStateError
