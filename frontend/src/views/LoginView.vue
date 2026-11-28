@@ -86,7 +86,7 @@ function googleLogin() {
 
       <div class="relative z-10 flex-1 flex flex-col justify-center gap-8 lg:gap-10 mt-6 sm:mt-8 lg:mt-12 max-w-2xl">
         <div>
-          <h1 class="text-[1.75rem] sm:text-4xl lg:text-[2.75rem] font-semibold leading-[1.12] tracking-tight [text-wrap:balance]">
+          <h1 class="text-[1.75rem] sm:text-4xl lg:text-[2.75rem] font-semibold leading-[1.12] tracking-tight text-balance">
             Plan in cycles. Carry forward what matters. Let go of the rest.
           </h1>
           <p class="mt-3 sm:mt-4 text-[15px] sm:text-lg text-indigo-100/80 max-w-xl leading-relaxed">
@@ -101,7 +101,7 @@ function googleLogin() {
           <li
             v-for="f in features"
             :key="f"
-            class="rounded-full bg-white/[0.08] ring-1 ring-white/15 px-3 py-1 text-xs sm:text-sm text-indigo-50"
+            class="rounded-full bg-white/8 ring-1 ring-white/15 px-3 py-1 text-xs sm:text-sm text-indigo-50"
           >
             {{ f }}
           </li>
@@ -218,7 +218,7 @@ function googleLogin() {
                 type="email"
                 autocomplete="email"
                 required
-                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-accent-500 focus:outline-none"
+                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-accent-500 focus:outline-hidden"
               >
             </label>
 
@@ -229,7 +229,7 @@ function googleLogin() {
                 type="password"
                 autocomplete="current-password"
                 required
-                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-accent-500 focus:outline-none"
+                class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-accent-500 focus:outline-hidden"
               >
             </label>
 

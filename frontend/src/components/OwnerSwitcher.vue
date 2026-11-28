@@ -18,7 +18,7 @@ const cycles = useCyclesStore()
       class="px-3 py-1 touch:min-h-11 rounded-md font-medium transition-colors"
       :class="
         cycles.activeOwner === 'human'
-          ? 'bg-white text-gray-900 shadow-sm'
+          ? 'bg-white text-gray-900 shadow-xs'
           : 'text-gray-500 hover:text-gray-700'
       "
       @click="cycles.setOwner('human')"
@@ -32,7 +32,7 @@ const cycles = useCyclesStore()
       class="px-3 py-1 touch:min-h-11 rounded-md font-medium transition-colors inline-flex items-center gap-1.5"
       :class="
         cycles.activeOwner === 'agent'
-          ? 'bg-white text-gray-900 shadow-sm'
+          ? 'bg-white text-gray-900 shadow-xs'
           : 'text-gray-500 hover:text-gray-700'
       "
       @click="cycles.setOwner('agent')"
@@ -41,7 +41,7 @@ const cycles = useCyclesStore()
       <span
         v-if="cycles.agentSummary.open"
         data-testid="agent-open-count"
-        class="min-w-[1.25rem] px-1.5 py-px rounded-full text-[11px] font-semibold tabular-nums"
+        class="min-w-5 px-1.5 py-px rounded-full text-[11px] font-semibold tabular-nums"
         :class="
           cycles.agentSummary.blocked
             ? 'bg-amber-100 text-amber-800'

@@ -73,7 +73,7 @@ defineExpose({ focus: () => titleEl.value?.focus() })
 <template>
   <div
     class="bg-white rounded-lg border transition-all"
-    :class="expanded ? 'shadow-sm border-gray-300 p-3' : 'border-gray-200 p-2'"
+    :class="expanded ? 'shadow-xs border-gray-300 p-3' : 'border-gray-200 p-2'"
   >
     <input
       ref="titleEl"
@@ -89,7 +89,7 @@ defineExpose({ focus: () => titleEl.value?.focus() })
             ? 'Add an item for the agents…'
             : 'Add a task…'
       "
-      class="w-full bg-transparent border-none focus:outline-none text-sm placeholder-gray-400"
+      class="w-full bg-transparent border-none focus:outline-hidden text-sm placeholder-gray-400"
       @focus="expanded = true"
       @keydown="onTitleKey"
     >
@@ -104,7 +104,7 @@ defineExpose({ focus: () => titleEl.value?.focus() })
         maxlength="20000"
         placeholder="Notes (optional)"
         autocapitalize="sentences"
-        class="w-full text-sm border border-gray-200 rounded p-2 resize-none focus:outline-none focus:border-accent-500"
+        class="w-full text-sm border border-gray-200 rounded-sm p-2 resize-none focus:outline-hidden focus:border-accent-500"
         @keydown="onNotesKey"
       />
       <div class="flex items-center justify-between">
@@ -121,7 +121,7 @@ defineExpose({ focus: () => titleEl.value?.focus() })
           </button>
           <button
             type="button"
-            class="px-3 py-1 touch:min-h-11 touch:px-5 text-xs rounded bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
+            class="px-3 py-1 touch:min-h-11 touch:px-5 text-xs rounded-sm bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50"
             :disabled="!title.trim() || submitting"
             @click="submit"
           >

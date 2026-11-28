@@ -84,7 +84,7 @@ const cycleStartedRel = computed(() => {
         <TabSwitcher class="hidden sm:flex" />
         <div class="flex items-center gap-1">
           <button
-            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded-sm"
             title="History"
             aria-label="History"
             @click="router.push('/history')"
@@ -92,7 +92,7 @@ const cycleStartedRel = computed(() => {
             <span aria-hidden="true">🕐</span>
           </button>
           <button
-            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded-sm"
             title="Settings"
             aria-label="Settings"
             @click="router.push('/settings')"
@@ -100,7 +100,7 @@ const cycleStartedRel = computed(() => {
             <span aria-hidden="true">⚙︎</span>
           </button>
           <button
-            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded"
+            class="w-11 h-11 flex items-center justify-center text-base text-gray-500 hover:text-gray-700 rounded-sm"
             title="Sign out"
             aria-label="Sign out"
             @click="logout"
@@ -156,8 +156,8 @@ const cycleStartedRel = computed(() => {
           :key="i"
           class="flex items-center gap-3 px-3 py-3 border-b last:border-b-0 border-gray-100 animate-pulse"
         >
-          <div class="w-5 h-5 rounded bg-gray-200" />
-          <div class="h-3 bg-gray-200 rounded flex-1" />
+          <div class="w-5 h-5 rounded-sm bg-gray-200" />
+          <div class="h-3 bg-gray-200 rounded-sm flex-1" />
         </div>
       </div>
 
@@ -188,7 +188,7 @@ const cycleStartedRel = computed(() => {
         >
           No open tasks. Add one above<span class="kbd-hint">
             — or press
-            <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-mono">N</kbd>
+            <kbd class="px-1.5 py-0.5 bg-gray-100 rounded-sm text-[10px] font-mono">N</kbd>
             to focus the input</span>.
         </div>
       </template>

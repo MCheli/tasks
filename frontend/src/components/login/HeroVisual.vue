@@ -31,11 +31,11 @@ const BAR = { done: '#34d399', open: '#818cf8', canceled: '#94a3b8' }
 
 <template>
   <div
-    class="relative w-full max-w-[33rem] h-[21rem] select-none"
+    class="relative w-full max-w-132 h-84 select-none"
     aria-hidden="true"
   >
     <!-- This cycle -->
-    <div class="hero-card float-a absolute left-0 top-2 w-[19.5rem] p-4">
+    <div class="hero-card float-a absolute left-0 top-2 w-78 p-4">
       <div class="flex items-baseline justify-between">
         <span class="text-[11px] uppercase tracking-wider text-indigo-200/80">Personal · this cycle</span>
         <span class="text-[11px] text-indigo-100/70">day 5</span>
@@ -47,7 +47,7 @@ const BAR = { done: '#34d399', open: '#818cf8', canceled: '#94a3b8' }
           class="flex items-center gap-2.5 text-[13px]"
         >
           <span
-            class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded text-[10px]"
+            class="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-[10px]"
             :class="r.status === 'done' ? 'bg-emerald-400 text-emerald-950' : 'border-[1.5px] border-white/35'"
           >{{ r.status === 'done' ? '✓' : '' }}</span>
           <span class="font-mono text-[10px] text-indigo-200/60">#{{ r.id }}</span>
@@ -57,14 +57,14 @@ const BAR = { done: '#34d399', open: '#818cf8', canceled: '#94a3b8' }
           >{{ r.title }}</span>
           <span
             v-if="r.pushed"
-            class="ml-auto flex-shrink-0 rounded-full bg-amber-300/15 px-1.5 py-px text-[10px] text-amber-200"
+            class="ml-auto shrink-0 rounded-full bg-amber-300/15 px-1.5 py-px text-[10px] text-amber-200"
           >{{ r.pushed }}× →</span>
         </li>
       </ul>
     </div>
 
     <!-- Triage at the end of a cycle -->
-    <div class="hero-card float-b absolute left-[21rem] top-0 w-[11.5rem] p-4">
+    <div class="hero-card float-b absolute left-84 top-0 w-46 p-4">
       <div class="text-[11px] uppercase tracking-wider text-indigo-200/80">New cycle</div>
       <ul class="mt-2.5 space-y-2">
         <li
@@ -82,14 +82,14 @@ const BAR = { done: '#34d399', open: '#818cf8', canceled: '#94a3b8' }
     </div>
 
     <!-- History: every task's lineage across cycles -->
-    <div class="hero-card float-c absolute left-[11rem] bottom-0 w-[21.5rem] p-4">
+    <div class="hero-card float-c absolute left-44 bottom-0 w-86 p-4">
       <div class="flex items-baseline justify-between">
         <span class="text-[11px] uppercase tracking-wider text-indigo-200/80">History</span>
         <span class="text-[11px] text-indigo-100/70">6 cycles</span>
       </div>
       <svg
         viewBox="0 0 300 92"
-        class="mt-2 w-full h-[5.5rem]"
+        class="mt-2 w-full h-22"
       >
         <rect
           v-for="i in 6"
