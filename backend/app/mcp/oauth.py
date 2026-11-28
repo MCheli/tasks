@@ -17,7 +17,7 @@ import logging
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from uuid import UUID, uuid4
 
 import httpx
@@ -28,6 +28,7 @@ from mcp.server.auth.provider import (
     AuthorizationParams,
     AuthorizeError,
     RefreshToken,
+    RegistrationError,
     TokenError,
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
@@ -52,6 +53,7 @@ REFRESH_PREFIX = "mcpr_"
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 class TasksAccessToken(AccessToken):
@@ -67,6 +69,20 @@ def resource_url() -> str:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def redirect_allowed(uri: str) -> bool:
+    """Whether a connector may have its codes sent to `uri` (TASKS_MCP_REDIRECT_HOSTS)."""
+    try:
+        parts = urlsplit(uri)
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        return False
+    if host not in settings.mcp_redirect_hosts:
+        return False
+    if host in LOOPBACK_HOSTS:
+        return parts.scheme in ("http", "https")
+    return parts.scheme == "https"
 
 
 # ---------------------------------------------------------------------------
@@ -230,6 +246,9 @@ class TasksOAuthProvider:
         return OAuthClientInformationFull.model_validate(row.info)
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
+        uris = [str(u) for u in client_info.redirect_uris or []]
+        if not uris or not all(redirect_allowed(u) for u in uris):
+            raise RegistrationError("invalid_redirect_uri", "Redirect URI host is not allowed")
         async with mcp_db.session() as db:
             db.add(
                 OAuthClient(
@@ -254,6 +273,9 @@ class TasksOAuthProvider:
             and settings.GOOGLE_REDIRECT_URI
         ):
             raise AuthorizeError("temporarily_unavailable", "Google sign-in is not configured")
+        # Also checked here for clients registered before the host list existed.
+        if not redirect_allowed(str(params.redirect_uri)):
+            raise AuthorizeError("invalid_request", "Redirect URI host is not allowed")
         return google_authorize_url(encode_state(client, params))
 
     # -- codes -------------------------------------------------------------------------

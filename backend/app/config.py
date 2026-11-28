@@ -94,6 +94,9 @@ class Settings(BaseSettings):
     MCP_ALLOWED_EMAILS: str = ""
     MCP_ACCESS_TOKEN_SECONDS: int = 60 * 60
     MCP_REFRESH_TOKEN_DAYS: int = 30
+    # Hosts a connector's OAuth redirect_uri may point at (comma-separated): https only, except
+    # loopback, which local clients (Claude Code) use over http. Codes go nowhere else.
+    MCP_REDIRECT_HOSTS: str = "claude.ai,claude.com,localhost,127.0.0.1"
 
     @field_validator("COOKIE_DOMAIN", "DEMO_URL", "ENABLE_DOCS", "PUBLIC_URL", mode="before")
     @classmethod
@@ -109,6 +112,10 @@ class Settings(BaseSettings):
     @property
     def mcp_allowed_emails(self) -> frozenset[str]:
         return frozenset(e.strip().lower() for e in self.MCP_ALLOWED_EMAILS.split(",") if e.strip())
+
+    @property
+    def mcp_redirect_hosts(self) -> frozenset[str]:
+        return frozenset(h.strip().lower() for h in self.MCP_REDIRECT_HOSTS.split(",") if h.strip())
 
     @property
     def mcp_enabled(self) -> bool:

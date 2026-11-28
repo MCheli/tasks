@@ -32,3 +32,14 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+
+  # Frontend build tooling (Vite, Vitest, ESLint) and the Playwright e2e suite; one grouped PR a week.
+  - package-ecosystem: npm
+    directories:
+      - "/frontend"
+      - "/e2e"
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
