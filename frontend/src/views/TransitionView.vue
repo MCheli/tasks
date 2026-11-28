@@ -131,7 +131,7 @@ function cancel() {
           class="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0 border-gray-100"
         >
           <button
-            class="flex-shrink-0 w-9 h-9 touch:w-11 touch:h-11 rounded-md flex items-center justify-center font-bold transition-colors"
+            class="shrink-0 w-9 h-9 touch:w-11 touch:h-11 rounded-md flex items-center justify-center font-bold transition-colors"
             :class="COLORS[actions[task.persistent_task_id] || 'forward']"
             :aria-label="`Action for task ${task.display_id}: ${LABELS[actions[task.persistent_task_id] || 'forward']}`"
             :title="LABELS[actions[task.persistent_task_id] || 'forward']"
@@ -142,7 +142,7 @@ function cancel() {
           <div class="flex-1 min-w-0 pt-1">
             <div class="flex items-baseline gap-2">
               <span class="text-[11px] font-mono text-gray-400">#{{ task.display_id }}</span>
-              <span class="min-w-0 text-sm break-words">{{ task.title }}</span>
+              <span class="min-w-0 text-sm wrap-break-word">{{ task.title }}</span>
             </div>
             <p
               v-if="task.notes"
@@ -165,7 +165,7 @@ function cancel() {
 
     <!-- Start button -->
     <div class="fixed bottom-0 left-0 right-0 sm:bottom-6 sm:right-6 sm:left-auto safe-bottom">
-      <div class="sm:hidden bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-6 px-4 pb-4">
+      <div class="sm:hidden bg-linear-to-t from-gray-50 via-gray-50/90 to-transparent pt-6 px-4 pb-4">
         <button
           v-demo-lock
           class="w-full bg-accent-500 text-white px-6 py-3 rounded-lg shadow-md font-medium hover:bg-accent-600 disabled:opacity-50"

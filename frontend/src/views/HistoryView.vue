@@ -82,13 +82,13 @@ watch(() => cycles.activeCategory, load)
         class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500"
       >
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-accent-500" /> Open / forwarded
+          <span class="w-3 h-3 rounded-xs bg-accent-500" /> Open / forwarded
         </span>
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-green-500" /> Completed
+          <span class="w-3 h-3 rounded-xs bg-green-500" /> Completed
         </span>
         <span class="inline-flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-gray-400" /> Canceled
+          <span class="w-3 h-3 rounded-xs bg-gray-400" /> Canceled
         </span>
         <span class="inline-flex items-center gap-1.5">
           <span class="w-3 h-3 border-l-2 border-dashed border-amber-400" /> Today

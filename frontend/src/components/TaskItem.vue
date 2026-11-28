@@ -116,7 +116,7 @@ function fmtDate(iso) {
     <span
       v-if="task.status === 'open' && !readonly"
       v-demo-lock
-      class="drag-handle flex-shrink-0 self-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none leading-none touch:self-stretch touch:-my-3.5 touch:-ml-3 touch:w-10 touch:flex touch:items-center touch:justify-center"
+      class="drag-handle shrink-0 self-center text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing select-none leading-none touch:self-stretch touch:-my-3.5 touch:-ml-3 touch:w-10 touch:flex touch:items-center touch:justify-center"
       title="Drag to reorder"
       aria-label="Drag to reorder"
     >⋮⋮</span>
@@ -124,7 +124,7 @@ function fmtDate(iso) {
     <!-- Status icon / checkbox -->
     <button
       v-demo-lock
-      class="relative mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs touch:before:absolute touch:before:-inset-3.5 touch:before:content-['']"
+      class="relative mt-0.5 shrink-0 w-5 h-5 rounded-sm flex items-center justify-center text-xs touch:before:absolute touch:before:-inset-3.5 touch:before:content-['']"
       :class="{
         'bg-green-500 text-white': task.status === 'completed',
         'bg-gray-300 text-white': task.status === 'canceled',
@@ -149,7 +149,7 @@ function fmtDate(iso) {
       <div class="flex items-baseline gap-2">
         <span class="text-[11px] font-mono text-gray-400">#{{ task.display_id }}</span>
         <span
-          class="min-w-0 text-sm break-words"
+          class="min-w-0 text-sm wrap-break-word"
           :class="{ 'line-through': task.status !== 'open' }"
         >{{ task.title }}</span>
       </div>
@@ -192,7 +192,7 @@ function fmtDate(iso) {
             type="text"
             enterkeyhint="done"
             autocapitalize="sentences"
-            class="w-full text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-accent-500"
+            class="w-full text-sm border border-gray-200 rounded-sm px-2 py-1 focus:outline-hidden focus:border-accent-500"
             @keydown.enter.stop.prevent="saveEdit"
             @keydown.escape.stop="cancelEdit"
           >
@@ -202,7 +202,7 @@ function fmtDate(iso) {
             maxlength="20000"
             placeholder="Notes…"
             autocapitalize="sentences"
-            class="w-full text-sm border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-accent-500"
+            class="w-full text-sm border border-gray-200 rounded-sm px-2 py-1 resize-none focus:outline-hidden focus:border-accent-500"
             @keydown.escape.stop="cancelEdit"
           />
         </template>
@@ -215,7 +215,7 @@ function fmtDate(iso) {
           <template v-if="!editing">
             <button
               v-demo-lock
-              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-accent-600 hover:bg-accent-50 rounded"
+              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-accent-600 hover:bg-accent-50 rounded-sm"
               @click="startEdit"
             >
               Edit
@@ -223,7 +223,7 @@ function fmtDate(iso) {
             <button
               v-if="task.status === 'open'"
               v-demo-lock
-              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-sm"
               @click="cancelTask"
             >
               Cancel task
@@ -231,14 +231,14 @@ function fmtDate(iso) {
             <button
               v-if="task.status === 'canceled' || task.status === 'completed'"
               v-demo-lock
-              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:bg-gray-100 rounded"
+              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:bg-gray-100 rounded-sm"
               @click="reopenTask"
             >
               Reopen
             </button>
             <button
               v-demo-lock
-              class="ml-auto text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+              class="ml-auto text-xs px-2 py-1 touch:min-h-11 touch:px-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-sm"
               @click="deleteTask"
             >
               Delete…
@@ -246,7 +246,7 @@ function fmtDate(iso) {
           </template>
           <template v-else>
             <button
-              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 rounded bg-accent-500 text-white hover:bg-accent-600"
+              class="text-xs px-2 py-1 touch:min-h-11 touch:px-3 rounded-sm bg-accent-500 text-white hover:bg-accent-600"
               @click="saveEdit"
             >
               Save

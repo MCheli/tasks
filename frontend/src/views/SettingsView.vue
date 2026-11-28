@@ -246,7 +246,7 @@ onMounted(loadKeys)
               autocorrect="off"
               spellcheck="false"
               enterkeyhint="done"
-              class="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900"
+              class="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-gray-900"
               @keydown.enter="submitCreate"
             >
             <button
@@ -336,7 +336,7 @@ onMounted(loadKeys)
           <code class="block text-xs font-mono px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">{{ baseUrl }}</code>
           <p class="text-[11px] text-gray-500 mt-2">
             Authenticate with the
-            <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header. Each key
+            <code class="bg-gray-100 px-1 rounded-sm">X-API-Key</code> header. Each key
             grants full read/write access to its owner's tasks and cycles.
           </p>
         </div>
@@ -352,13 +352,13 @@ onMounted(loadKeys)
           <p class="text-[11px] text-gray-500 mt-2">
             Add it in claude.ai under Settings → Connectors → Add custom connector, then sign in
             with Google. Scheduled jobs can call it with an API key as a Bearer token instead.
-            Tools: <code class="bg-gray-100 px-1 rounded">list_tasks</code>,
-            <code class="bg-gray-100 px-1 rounded">get_task</code>,
-            <code class="bg-gray-100 px-1 rounded">create_task</code>,
-            <code class="bg-gray-100 px-1 rounded">update_task</code>,
-            <code class="bg-gray-100 px-1 rounded">complete_task</code>,
-            <code class="bg-gray-100 px-1 rounded">reopen_task</code>,
-            <code class="bg-gray-100 px-1 rounded">add_note</code>. Items created through it land
+            Tools: <code class="bg-gray-100 px-1 rounded-sm">list_tasks</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">get_task</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">create_task</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">update_task</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">complete_task</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">reopen_task</code>,
+            <code class="bg-gray-100 px-1 rounded-sm">add_note</code>. Items created through it land
             on the agents' list unless asked otherwise.
           </p>
         </div>
@@ -428,7 +428,7 @@ const cycle = await res.json();</pre>
               >
                 <td class="px-5 py-2 align-top w-20">
                   <span
-                    class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded"
+                    class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-sm"
                     :class="methodColor(ep.method)"
                   >{{ ep.method }}</span>
                 </td>
@@ -449,13 +449,13 @@ const cycle = await res.json();</pre>
           </h3>
           <ul class="text-xs text-gray-600 space-y-1">
             <li>
-              <code class="bg-gray-100 px-1 rounded">401 Unauthorized</code> — missing, malformed, or revoked API key.
+              <code class="bg-gray-100 px-1 rounded-sm">401 Unauthorized</code> — missing, malformed, or revoked API key.
             </li>
             <li>
-              <code class="bg-gray-100 px-1 rounded">404 Not Found</code> — resource doesn't exist or belongs to another user.
+              <code class="bg-gray-100 px-1 rounded-sm">404 Not Found</code> — resource doesn't exist or belongs to another user.
             </li>
             <li>
-              <code class="bg-gray-100 px-1 rounded">422 Unprocessable Entity</code> — request body failed validation.
+              <code class="bg-gray-100 px-1 rounded-sm">422 Unprocessable Entity</code> — request body failed validation.
             </li>
           </ul>
         </div>

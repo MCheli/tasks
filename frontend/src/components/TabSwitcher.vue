@@ -22,7 +22,7 @@ const tabs = [
       class="px-4 py-1.5 touch:min-h-11 text-sm font-medium rounded-md transition-colors"
       :class="
         cycles.activeCategory === t.id
-          ? 'bg-white text-accent-700 shadow-sm'
+          ? 'bg-white text-accent-700 shadow-xs'
           : 'text-gray-500 hover:text-gray-700'
       "
       @click="cycles.setCategory(t.id)"
