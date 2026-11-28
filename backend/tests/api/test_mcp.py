@@ -625,12 +625,27 @@ async def test_registration_refuses_redirect_hosts_not_on_the_list(mcp_client, u
     assert r.json()["error"] == "invalid_redirect_uri"
 
 
-async def test_registration_accepts_a_loopback_redirect(mcp_client):
+async def test_registration_accepts_the_claude_web_and_app_callbacks(mcp_client):
+    r = await mcp_client.post(
+        "/register",
+        json={
+            "client_name": "Claude",
+            "redirect_uris": [CLAUDE_CALLBACK, "https://claude.com/api/mcp/auth_callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "client_secret_post",
+        },
+    )
+    assert r.status_code == 201, r.text
+
+
+@pytest.mark.parametrize("uri", ["http://localhost:53682/callback", "http://127.0.0.1:53682/cb"])
+async def test_registration_accepts_a_loopback_redirect(mcp_client, uri):
     r = await mcp_client.post(
         "/register",
         json={
             "client_name": "Claude Code",
-            "redirect_uris": ["http://localhost:53682/callback"],
+            "redirect_uris": [uri],
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
             "token_endpoint_auth_method": "none",
